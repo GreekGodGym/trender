@@ -270,6 +270,32 @@ input[type="date"]::-webkit-calendar-picker-indicator{margin:0}
 .rest button{width:24px;height:24px;font-size:14px}
 .set{grid-template-columns:20px minmax(0,1fr) 14px minmax(0,.8fr) 30px auto 34px}
 @media (prefers-reduced-motion: reduce){*{scroll-behavior:auto!important;transition:none!important}}
+/* ---- v4: current set frame, folded exercises, hall of fame ---- */
+.set.cur{position:relative;z-index:1;padding:3px 4px;margin:-3px -4px;border-radius:12px;background:var(--accent-soft);box-shadow:0 0 0 2px var(--accent),0 0 0 5px var(--accent-soft);animation:curin .55s ease-out}
+.set.cur .i{color:var(--accent);font-weight:700}
+@keyframes curin{from{box-shadow:0 0 0 2px var(--accent),0 0 0 14px transparent}to{box-shadow:0 0 0 2px var(--accent),0 0 0 5px var(--accent-soft)}}
+.ex.fold{padding:0}
+.fold-b{appearance:none;border:0;background:none;width:100%;text-align:left;padding:12px 14px;min-height:50px;display:flex;flex-direction:column;gap:3px;color:var(--ink);font:inherit;cursor:pointer;border-radius:var(--r)}
+.fold-b .fl{display:flex;align-items:center;gap:8px}
+.fold-b .fl b{font-weight:600;font-size:15px;min-width:0}
+.fold-b .fl::after{content:'▾';margin-left:auto;color:var(--muted)}
+.fold-b .fk{font-style:normal;color:var(--good);font-weight:700}
+.fold-b .fr{font-style:normal;font-size:11.5px;color:var(--good);background:var(--good-soft);border-radius:6px;padding:1px 6px}
+.fold-b .fs{font-size:13.5px;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.cnt.done::after{content:' ▴'}
+.hof-h{appearance:none;border:0;background:none;width:100%;padding:0;display:flex;align-items:center;justify-content:space-between;gap:10px;color:var(--ink);font:inherit;cursor:pointer;text-align:left}
+.hof-hl{display:flex;flex-direction:column;gap:2px}
+.hof-t{font-family:var(--font-display);font-weight:600;font-size:15px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2)}
+.hof-s{font-size:13px;color:var(--ink-2)}
+.hof-h i{font-style:normal;color:var(--muted)}
+.hof-g{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-top:6px}
+.hof-r{appearance:none;border:0;border-top:1px solid var(--line-2);background:none;width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 0;color:var(--ink);font:inherit;text-align:left;cursor:pointer;min-height:48px}
+.hof-r .hl{display:flex;flex-direction:column;gap:1px;min-width:0}
+.hof-r .hl b{font-weight:600;font-size:14.5px}
+.hof-r small{font-size:12px;color:var(--muted)}
+.hof-r small em{font-style:normal;color:var(--good);font-weight:600}
+.hof-r .hv{display:flex;flex-direction:column;align-items:flex-end;font-weight:700;font-size:16px;font-variant-numeric:tabular-nums;white-space:nowrap}
+@media (prefers-reduced-motion: reduce){.set.cur{animation:none}}
 </style></head><body>
 <header class="top"><div class="wrap"><span class="brand">Журнал подходов</span><div id="rest" class="rest" hidden></div><span class="top-meta" id="top-meta"></span></div></header>
 <main class="wrap" id="view"></main>
@@ -571,6 +597,11 @@ const FXN=['plate','odo','crack','salvo','wave','lift'];
 function afterReps(w,ei,si,was){
   const e=w.ex[ei],s=e.sets[si];
   if(!was&&s.r>0)startRest(e,s);
+  if(!was&&s.r>0)ST.adv={ei,si};
+  if(ST.adv&&ST.adv.ei===ei&&ST.adv.si===si){
+    clearTimeout(advT);
+    if(s.r>0)advT=setTimeout(advance,1200);else{ST.adv=null;markCurrent();}
+  }else if(!(s.r>0))markCurrent();
   clearTimeout(fxT);fxT=setTimeout(()=>checkCeiling(ei),700);
 }
 function checkCeiling(ei){
@@ -635,6 +666,7 @@ function render(){
   else if(UI.tab==='hist')v.innerHTML=viewHist();
   else v.innerHTML=viewData();
   if(UI.tab==='prog')drawCharts();
+  if(UI.tab==='train')markCurrent();
 }
 function banners(){
   let h='';
@@ -645,7 +677,7 @@ function banners(){
 }
 
 /* ---------- view: train ---------- */
-let ST={week:null,day:null,date:null,confirm:null,openNote:{},flash:null};
+let ST={week:null,day:null,date:null,confirm:null,openNote:{},flash:null,open:{},last:null,lastW:null,adv:null};
 function viewTrain(){
   const a=active();return banners()+(a?viewSession(a):(ED.on?viewEditor():viewStarter()));
 }
@@ -688,6 +720,7 @@ function viewSession(w){
 }
 function exCard(w,e,ei){
   const info=exInfo(e.id);const last=lastEntry(e.id,w.id);const best=bestEver(e.id,w.id);
+  if(isDone(e)&&ST.open[w.id+':'+ei]!==true)return foldHTML(w,e,ei,best);
   const prog=progressionFor(e.id,e.plan,w.id);
   const doneN=e.sets.filter(s=>s.r>0).length;
   let lastH='';
@@ -703,7 +736,7 @@ function exCard(w,e,ei){
   if(cl)lastH+=`<div class="coach">${esc(cl)}</div>`;
   if(!lastH)lastH='<div>Раньше не делал</div>';
   const kindHint=info.kind==='assist'?' · вес = противовес':info.kind==='bw'?' · вес = доп. вес':'';
-  let h=`<section class="ex${w.week!=null?' wk'+w.week:''}" id="ex-${ei}"><div class="ex-h"><div class="nm">${esc(info.name)}<br><span class="spec">${e.plan?specText(e.plan).replace(' *',''):''}${e.plan&&e.plan.star?' <span class="star">50–60%</span>':''}${kindHint}<span class="ph" id="ph-${ei}">${plateHint(e)}</span></span></div><span class="cnt ${doneN===e.sets.length&&doneN?'done':''}" id="cnt-${ei}">${doneN}/${e.sets.length}</span></div>
+  let h=`<section class="ex${w.week!=null?' wk'+w.week:''}" id="ex-${ei}"><div class="ex-h" data-act="fold" data-ei="${ei}"><div class="nm">${esc(info.name)}<br><span class="spec">${e.plan?specText(e.plan).replace(' *',''):''}${e.plan&&e.plan.star?' <span class="star">50–60%</span>':''}${kindHint}<span class="ph" id="ph-${ei}">${plateHint(e)}</span></span></div><span class="cnt ${doneN===e.sets.length&&doneN?'done':''}" id="cnt-${ei}">${doneN}/${e.sets.length}</span></div>
   <div class="last">${lastH}</div><div class="sets">`;
   e.sets.forEach((s,si)=>{h+=setRow(w,e,ei,s,si,best);});
   h+=`</div><div class="ex-actions"><button class="link" data-act="add-set" data-ei="${ei}">+ Подход</button><button class="link" data-act="note" data-ei="${ei}">${e.note?'Заметка ✓':'Заметка'}</button><button class="link" data-act="replace" data-ei="${ei}">Заменить</button><button class="link" data-act="del-ex" data-ei="${ei}">Убрать</button></div>`;
@@ -779,7 +812,7 @@ function viewProg(){
   const recent=win(now-35*dayMs,now),before=win(now-125*dayMs,now-90*dayMs);
   const delta=recent!=null&&before!=null?recent-before:null;
   const unit=m==='e1'?'расч. макс.':'лучший вес';
-  let h=`<h2>Прогресс</h2><label class="field" for="ex-select">Упражнение<select id="ex-select" data-field="ex-select">${opts}</select></label>
+  let h=`<h2>Прогресс</h2>${viewHof()}<label class="field" for="ex-select">Упражнение<select id="ex-select" data-field="ex-select">${opts}</select></label>
   <div class="stats"><div class="stat"><span class="k">Рекорд</span><span class="v">${best?fmtSet(id,best.s):'—'}</span><span class="s">${best?fmtD(best.d)+' · ≈'+fmtN(Math.round(best.v))+' кг':''}</span></div>
   <div class="stat"><span class="k">Последний раз</span><span class="v">${lastB?fmtSet(id,lastB.s):'—'}</span><span class="s">${fmtD(last.w.d)}</span></div>
   <div class="stat"><span class="k">За 3 месяца</span><span class="v ${delta>0?'up':''}">${delta==null?'—':(delta>0?'+':'')+fmtN(Math.round(delta*10)/10)}</span><span class="s">${delta==null?'мало данных':'кг, '+unit}</span></div></div>
@@ -929,7 +962,12 @@ const GRP_LINES={
   'Каждая тяга делает плечи шире, талию уже, а силуэт таким, что хочется рассматривать.',
   'Когда она будет царапать эту спину ногтями, ты вспомнишь каждую тягу. Тяни, чтобы было за что держаться.',
   'Широкая спина обещает всё ещё до того, как ты разденешься. Сдержи это обещание.',
-  'Такая спина сводит с ума и при свете, и в темноте. Ещё подход, красавчик.'],
+  'Такая спина сводит с ума и при свете, и в темноте. Ещё подход, красавчик.',
+  'Тяни так, чтобы утром на этой спине остались её ноготки, а на лице у неё улыбка. Ещё повтор.',
+  'Спина, за которую цепляются, когда уже нечем дышать. Сделай так, чтобы было за что цепляться.',
+  'Снимешь рубашку, и она потеряет нить разговора, а потом и самообладание. Тяни, красавчик.',
+  'Широчайшие это декорации к лучшей сцене вечера. Достраивай их подход за подходом.',
+  'Пока лопатки сходятся в этой тяге, где-то уже решают, что к тебе можно и без ужина. Тяни.'],
  'Плечи':[
   'Круглые мощные плечи, за которые хочется держаться. Жми, не торопись.',
   'Чем шире рамка плеч, тем дольше взгляд задерживается на картине.',
@@ -937,7 +975,12 @@ const GRP_LINES={
   'Девушки замечают плечи раньше всего остального. Дай им повод.',
   'Эти плечи должны выдерживать штангу и её руки, которые не захотят тебя отпускать. Жми.',
   'Обтягивающая футболка на твоих плечах это не одежда, а приглашение. Расширяй приглашение.',
-  'Сегодня плечи, а ночью она сама за них подержится. Не халтурь.'],
+  'Сегодня плечи, а ночью она сама за них подержится. Не халтурь.',
+  'Плечи, в которые она вцепится так, что завтра на них останутся улики. Жми, пусть будет за что.',
+  'Эти плечи держат тебя весь день, а ночью их держат её руки. Заработай эту честь.',
+  'Футболка на плечах трещит, и у кого-то в голове трещат остатки приличия. Ещё подход.',
+  'Когда ты нависаешь над ней, плечи закрывают весь свет, остаётесь только вы. Жми.',
+  'Дельты такие, что хочется укусить. Сначала нежно. Жми, красавчик.'],
  'Бицепс':[
   'Бицепс, от которого рукав сдаётся. Поднимай медленно, до конца.',
   'Когда она положит ладонь тебе на руку и почувствует, какая она твёрдая, ты поймёшь, что это стоило.',
@@ -945,7 +988,12 @@ const GRP_LINES={
   'Сильные руки это красиво. Сегодня делаешь их ещё красивее.',
   'Пусть она в темноте ищет рукой не выключатель, а твой бицепс. Подними ещё раз, чтобы нашла сразу.',
   'Сильные руки поднимут её без усилий, и она это запомнит. Тренируй, чтобы поднимать без усилий.',
-  'Согни руку и услышь, как кто-то тихо вздохнул. Сделай так, чтобы вздохов стало больше.'],
+  'Согни руку и услышь, как кто-то тихо вздохнул. Сделай так, чтобы вздохов стало больше.',
+  'Согнёшь руку, и она начнёт терять мысли на полуслове. Сгибай, пока не потеряет все.',
+  'Руки, которые поднимут её и прижмут к стене. Тяжело поднимать, зато как потом хорошо. Подними ещё.',
+  'Она сожмёт бицепс, прошепчет «ого», а дальше всё пойдёт по плану. Заслужи этот шёпот.',
+  'Пик в верхней точке, пауза, выдох. Всё как надо, и не только в зале. Сгибай медленно.',
+  'Каждое сгибание это ещё один вздох в темноте, который ты вызовешь. Работай.'],
  'Грудь':[
   'Грудные, на которые хочется положить голову. Жми глубоко, до растяжения.',
   'Рельефная грудь под тонкой футболкой, и разговор можно не начинать. Работай.',
@@ -953,7 +1001,12 @@ const GRP_LINES={
   'Верх груди даёт тот самый «вау» в расстёгнутой рубашке. Не пропусти ни одного повтора.',
   'Грудь, в которую хочется уткнуться и не вылезать до утра. Дави, чтобы было куда.',
   'Расстегни верхнюю пуговицу рубашки, и пусть грудь скажет остальное. Ещё повтор.',
-  'Такая грудь превращает «просто посидим» в «останься». Жми ради этого.'],
+  'Такая грудь превращает «просто посидим» в «останься». Жми ради этого.',
+  'Расстегни рубашку, и в комнате станет на пару градусов жарче. Жми, градусы сами не поднимутся.',
+  'Грудь, на которой она уснёт после. Дави, чтобы ей было удобно, а тебе приятно вспоминать.',
+  'Она положит ладонь на грудь, почувствует, как колотится сердце, и всё поймёт без слов. Дави.',
+  'Рельефная грудь и мокрая от тренировки футболка: после такого «просто чай» не бывает. Жми.',
+  'Каждый жим это ещё один повод для неё остаться до утра. Дави до конца.'],
  'Трицепс':[
   'Трицепс это две трети руки, и именно он делает рукав тесным. Разгибай до конца.',
   'Рельефные подтянутые руки, которые так приятно обнимают. Жми и разгибай.',
@@ -961,7 +1014,12 @@ const GRP_LINES={
   'Мощный трицепс это объём, мимо которого не пройти. Дави до конца.',
   'Руки, на которых держится вес тела над ней, не должны дрожать в самый ответственный момент. Разгибай.',
   'Трицепс это твоя тайная сила. Руки не дрогнут, когда станет жарко. Дави.',
-  'Подтянутые руки в обтягивающем рукаве и взгляд, который задерживается дольше положенного. Разгибай.'],
+  'Подтянутые руки в обтягивающем рукаве и взгляд, который задерживается дольше положенного. Разгибай.',
+  'Сильный трицепс это когда можно долго, красиво и без остановок. Разгибай, тренируй выносливость.',
+  'Держаться на руках над ней всю ночь тоже спорт. Тренируйся, чемпион.',
+  'Разгибай до конца, как будто за каждый повтор полагается поцелуй. Вдруг полагается.',
+  'Тонкая футболка, подтянутые руки, и уже кто-то забыл, о чём говорил. Дави.',
+  'Руки не дрогнут в самый ответственный момент, потому что ты их готовил. Разгибай.'],
  'Ноги':[
   'Крепкие бёдра в джинсах видны сразу. Приседай глубже.',
   'Ноги делают тебя устойчивым и опасным. Присед это твой козырь.',
@@ -969,7 +1027,12 @@ const GRP_LINES={
   'Бёдра и ягодицы растут от тяжёлых приседов и румынки. Трудно, зато потом красиво.',
   'Крепкие бёдра в обтягивающих джинсах заставляют оборачиваться. Приседай, пока джинсы не начнут жаловаться.',
   'Сильные ноги это выносливость на всю ночь. Тренируй сейчас, поблагодаришь потом.',
-  'Ягодицы, на которые смотрят вслед. Это не случайность, а присед. Опускайся глубже.'],
+  'Ягодицы, на которые смотрят вслед. Это не случайность, а присед. Опускайся глубже.',
+  'Ноги, которые не подведут ни в зале, ни ночью, ни на третьем заходе. Приседай.',
+  'Присед глубже, чем она ожидала, и ягодицы, на которые невозможно не смотреть. Вниз, красавчик.',
+  'Джинсы сидят так, что она уже представляет, как их снимать. Приседай, пока представляет.',
+  'Выносливость, о которой она потом расскажет подруге шёпотом. Работай, ноги закладывают фундамент.',
+  'Крепкие бёдра и сбитое дыхание: репетиция того, что будет потом. Ещё подход.'],
  'Пресс':[
   'Кубики, по которым девушки хотят провести пальцами, не растут от мыслей о них. Растут от этого подхода.',
   'Снимешь футболку, и разговор закончится. Пресс сам скажет всё, что нужно. Работай.',
@@ -978,7 +1041,12 @@ const GRP_LINES={
   'Ей не придётся просить показать пресс. Хватит одного взгляда, а заработан он здесь и сейчас.',
   'Ей захочется провести пальцами по твоему прессу ещё до того, как ты закончишь фразу. Работай.',
   'Кубики, на которые она будет класть ладони, пока ты делаешь вид, что не замечаешь. Ещё подход.',
-  'Пресс как у тебя превращает «пойдём пить кофе» в «пойдём ко мне». Выдох, напряги.'],
+  'Пресс как у тебя превращает «пойдём пить кофе» в «пойдём ко мне». Выдох, напряги.',
+  'Плоский живот с кубиками, и её пальцы не знают, что делать дальше: считать кубики или спускаться ниже. Работай.',
+  'Дыхание сбито, мышцы горят, дрожь в теле. Всё как ночью, только полезнее. Ещё повтор.',
+  'Футболка поднимается, разговор обрывается. Заслужи этот эффект ещё одним подходом.',
+  'Пресс, на который она смотрит, закусив губу. Ещё подход, чтобы закусила сильнее.',
+  'Кубики это обещание. Остальное она узнает позже, если ты сегодня не поленишься. Выдох, сжимай.'],
  'Предплечья':[
   'Предплечья с венами, на которые невозможно не посмотреть, когда ты закатываешь рукава. Работай.',
   'Мощные кисти и предплечья: когда ты берёшь её за руку, она это чувствует.',
@@ -986,7 +1054,12 @@ const GRP_LINES={
   'Рукава закатаны, вены видны, взгляд задержан. Давай ещё подход.',
   'Вены на предплечьях, закатанные рукава и твоя рука на её талии. Такая картинка стоит ещё одного подхода.',
   'Рука на её талии должна быть уверенной. Хват тренируется здесь.',
-  'Сильные руки с венами она заметит первыми, когда ты потянешься к ней. Работай.']
+  'Сильные руки с венами она заметит первыми, когда ты потянешься к ней. Работай.',
+  'Вены на руках читаются без слов, и приглашение там простое. Сожми гриф покрепче.',
+  'Рука на пояснице, уверенный хват, и она уже смотрит не в глаза, а на руку. Работай.',
+  'Закатанные рукава, вены, часы на запястье, ни слова не нужно. Ещё подход, красавчик.',
+  'Хват, который знает, что делать и ничего не выпускает. Тренируй, чтобы ночью не соскальзывало.',
+  'Сильные кисти обещают, что тебя хватит надолго. Докажи это ещё одним подходом.']
 };
 const FOURTH=[
  'Четыре тренировки за неделю, и ты ни одну не пропустил. Это дисциплина, а не мотивация.',
@@ -1060,12 +1133,136 @@ function viewEditor(){
   return h;
 }
 
+/* ---------- v4: current set, folding finished exercises, hall of fame ---------- */
+const isWU=s=>!!(s.f&F.WU);
+function isDone(e){const r=e.sets.filter(s=>!isWU(s));return r.length>0&&r.every(s=>s.r>0);}
+function pendingIn(e){let last=-1;e.sets.forEach((s,i)=>{if(s.r>0)last=i;});return last+1<e.sets.length?last+1:-1;}
+function curSet(w){
+  const n=w.ex.length;if(!n)return null;
+  let start=(ST.lastW===w.id&&ST.last!=null&&w.ex[ST.last])?ST.last:-1;
+  if(start<0){w.ex.forEach((e,i)=>{if(e.sets.some(s=>s.r>0))start=i;});if(start<0)start=0;}
+  for(let k=0;k<n;k++){const ei=(start+k)%n;const si=pendingIn(w.ex[ei]);if(si>=0)return{ei,si};}
+  return null;
+}
+function markCurrent(){
+  document.querySelectorAll('.set.cur').forEach(el=>el.classList.remove('cur'));
+  const w=active();if(!w||UI.tab!=='train'||ED.on)return null;
+  const c=curSet(w);if(!c)return null;
+  const el=$('#set-'+c.ei+'-'+c.si);if(el)el.classList.add('cur');
+  return c;
+}
+function scrollToRow(el,instant){
+  if(!el)return;
+  const rm=!!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches);
+  const vv=window.visualViewport;const h=vv?vv.height:window.innerHeight;const off=vv?vv.offsetTop:0;
+  const r=el.getBoundingClientRect();
+  const d=(r.top+r.height/2)-(off+h*0.42);
+  if(Math.abs(d)<24)return;
+  window.scrollBy({top:d,behavior:(rm||instant)?'auto':'smooth'});
+}
+/* keep the chosen element where it was on screen while the layout above it changes */
+function withAnchor(sel,fn){
+  const a=$(sel);const t0=a?a.getBoundingClientRect().top:null;
+  fn();
+  const b=t0!=null?$(sel):null;
+  if(b){const d=b.getBoundingClientRect().top-t0;if(Math.abs(d)>1)window.scrollBy(0,d);}
+}
+function refreshCard(w,ei){const el=$('#ex-'+ei);if(el&&w.ex[ei])el.outerHTML=exCard(w,w.ex[ei],ei);}
+function foldHTML(w,e,ei,best){
+  const sets=e.sets.filter(s=>s.r>0&&!isWU(s));
+  const rec=!!best&&sets.some(s=>scoreSet(e.id,s,w.d)>best.v+1e-6);
+  const txt=sets.map(s=>fmtSet(e.id,s)+(s.f&F.DROP?' (дроп)':'')).join(' · ');
+  return `<section class="ex fold${w.week!=null?' wk'+w.week:''}" id="ex-${ei}"><button class="fold-b" data-act="unfold" data-ei="${ei}" aria-expanded="false"><span class="fl"><b>${esc(exInfo(e.id).name)}</b><i class="fk">✓</i>${rec?'<em class="fr">рекорд</em>':''}</span><span class="fs">${esc(txt)}</span></button></section>`;
+}
+let advT=null,foldT=null,foldPending=false;
+function scheduleFold(ms){foldPending=true;clearTimeout(foldT);foldT=setTimeout(foldDone,ms);}
+function foldDone(){
+  foldPending=false;
+  const w=active();if(!w||UI.tab!=='train'||ED.on)return;
+  const ae=document.activeElement;
+  withAnchor('.set.cur',()=>{
+    w.ex.forEach((e,ei)=>{
+      const el=$('#ex-'+ei);
+      if(!el||el.classList.contains('fold')||!isDone(e)||ST.open[w.id+':'+ei]===true)return;
+      if(ae&&el.contains&&el.contains(ae))return;
+      refreshCard(w,ei);
+    });
+    markCurrent();
+  });
+}
+function advance(){
+  const w=active();const a=ST.adv;ST.adv=null;if(!w||!a)return;
+  const s=w.ex[a.ei]&&w.ex[a.ei].sets[a.si];if(!s||!(s.r>0))return;
+  const c=markCurrent();
+  const ae=document.activeElement;const typing=!!(ae&&/^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName));
+  if(c&&(!typing||ae.id==='r-'+a.ei+'-'+a.si)){
+    const nx=w.ex[c.ei].sets[c.si];
+    const fld=$('#'+(nx.w==null?'w-':'r-')+c.ei+'-'+c.si);
+    if(fld){try{fld.focus({preventScroll:true});}catch(e){fld.focus();}}
+    scrollToRow($('#set-'+c.ei+'-'+c.si));
+  }
+  scheduleFold(4500);
+}
+
+/* ---------- hall of fame ---------- */
+const plRu=(n,f)=>{const a=n%100,b=n%10;return a>10&&a<15?f[2]:b===1?f[0]:b>1&&b<5?f[1]:f[2];};
+function hofHeavy(id){
+  const kind=exInfo(id).kind;let ok=null,any=null;
+  for(const en of idx().byEx[id]||[]){
+    if(en.e.other)continue;
+    for(const s of en.sets){
+      if(!countable(s))continue;if(kind==='w'&&!(s.w>0))continue;
+      const c={L:eff(id,s.w,en.w.d),s,d:en.w.d};
+      const bt=(x,y)=>!y||x.L>y.L+1e-9||(Math.abs(x.L-y.L)<=1e-9&&x.s.r>y.s.r);
+      if(s.r>=3&&bt(c,ok))ok=c;
+      if(bt(c,any))any=c;
+    }
+  }
+  return ok||any;
+}
+function hofData(mode){
+  const out={};
+  Object.keys(idx().byEx).forEach(id=>{
+    let r=null;
+    if(mode==='f'){const b=bestEver(id,null);if(b)r={s:b.s,d:b.d,v:b.v};}
+    else{const b=hofHeavy(id);if(b)r={s:b.s,d:b.d,v:b.L};}
+    if(!r)return;const g=exInfo(id).group;(out[g]=out[g]||[]).push(Object.assign({id,name:exName(id)},r));
+  });
+  Object.keys(out).forEach(g=>out[g].sort((a,b)=>a.name.localeCompare(b.name,'ru')));
+  return out;
+}
+function viewHof(){
+  const mode=UI.hofMode==='f'?'f':'w';const data=hofData(mode);
+  const groups=GROUPS.concat(['Другое']).filter(g=>data[g]&&data[g].length);
+  if(!groups.length)return '';
+  const now=toDate(todayISO()).getTime();const isNew=r=>(now-toDate(r.d).getTime())/dayMs<=30;
+  let total=0,fresh=0;groups.forEach(g=>data[g].forEach(r=>{total++;if(isNew(r))fresh++;}));
+  const open=!!UI.hof;
+  let h=`<div class="card hof"><button class="hof-h" data-act="hof-toggle" aria-expanded="${open}"><span class="hof-hl"><b class="hof-t">Зал славы</b><span class="hof-s">${total} ${plRu(total,['рекорд','рекорда','рекордов'])}${fresh?' · '+fresh+' '+plRu(fresh,['новый','новых','новых'])+' за месяц':''}</span></span><i>${open?'▴':'▾'}</i></button>`;
+  if(open){
+    h+=`<div class="groups"><button class="chip" data-act="hof-mode" data-v="w" aria-pressed="${mode==='w'}">Самый тяжёлый вес</button><button class="chip" data-act="hof-mode" data-v="f" aria-pressed="${mode==='f'}">По формуле</button></div>`;
+    h+=`<p class="legend">${mode==='w'?'Самый тяжёлый подход, где было три повторения и больше.':'Лучший подход по формуле Эпли: вес × (1 + повторы / 30). Для упражнений с большими повторами считается просто вес.'} Нажми на строку, чтобы открыть график.</p>`;
+    groups.forEach(g=>{
+      h+=`<div class="hof-g">${esc(g)}</div>`;
+      data[g].forEach(r=>{
+        h+=`<button class="hof-r" data-act="hof-ex" data-v="${esc(r.id)}"><span class="hl"><b>${esc(r.name)}</b><small>${fmtD(r.d)}${isNew(r)?' · <em>новый</em>':''}</small></span><span class="hv">${fmtSet(r.id,r.s)}${mode==='f'?`<small>≈${fmtN(Math.round(r.v))} кг</small>`:''}</span></button>`;
+      });
+    });
+  }
+  return h+'</div>';
+}
+
 /* ---------- events ---------- */
 document.addEventListener('click',ev=>{
   const t=ev.target.closest('[data-act]');if(!t)return;const a=t.dataset.act,v=t.dataset.v,ei=+t.dataset.ei,si=+t.dataset.si;const w=active();
   switch(a){
+    case 'unfold':{const e=w&&w.ex[ei];if(e){withAnchor('#ex-'+ei,()=>{ST.open[w.id+':'+ei]=true;refreshCard(w,ei);markCurrent();});}break;}
+    case 'fold':{const e=w&&w.ex[ei];if(e&&isDone(e)){withAnchor('#ex-'+ei,()=>{delete ST.open[w.id+':'+ei];refreshCard(w,ei);markCurrent();});}break;}
+    case 'hof-toggle':UI.hof=!UI.hof;saveUI();render();break;
+    case 'hof-mode':UI.hofMode=v==='f'?'f':'w';saveUI();render();break;
+    case 'hof-ex':UI.ex=v;UI.hof=false;saveUI();render();window.scrollTo(0,0);break;
     case 'rest-x':REST=null;tickRest();break;
-    case 'effort':{const st=w.ex[ei].sets[si];const q=((st.q||0)+1)%4;if(q)st.q=q;else delete st.q;touch();t.className='qb q'+q;
+    case 'effort':{if(foldPending)scheduleFold(3500);const st=w.ex[ei].sets[si];const q=((st.q||0)+1)%4;if(q)st.q=q;else delete st.q;touch();t.className='qb q'+q;
       if(!UI.effortSeen){UI.effortSeen=true;saveUI();const lg=$('#q-legend');if(lg)lg.remove();}break;}
     case 'ed-open':ensurePlan();ED.on=true;ED.week=ST.week!=null?ST.week:0;ED.day=ST.day||1;ED.confirm=null;ED.copy=false;render();window.scrollTo(0,0);break;
     case 'ed-close':ED.on=false;render();window.scrollTo(0,0);break;
@@ -1128,7 +1325,7 @@ document.addEventListener('click',ev=>{
 });
 document.addEventListener('input',ev=>{
   const t=ev.target;const f=t.dataset&&t.dataset.field;if(!f)return;const w=active();
-  if(f==='w'||f==='r'){const ei=+t.dataset.ei,si=+t.dataset.si;const s=w.ex[ei].sets[si];const was=s.r>0;s[f]=parseN(t.value);touch();updateLive(ei,si);if(f==='r')afterReps(w,ei,si,was);}
+  if(f==='w'||f==='r'){const ei=+t.dataset.ei,si=+t.dataset.si;const s=w.ex[ei].sets[si];const was=s.r>0;s[f]=parseN(t.value);ST.last=ei;ST.lastW=w.id;touch();updateLive(ei,si);if(f==='r')afterReps(w,ei,si,was);}
   else if(f==='note'){w.ex[+t.dataset.ei].note=t.value;touch();}
   else if(f==='st-date'){ST.date=t.value;}
   else if(f&&f.indexOf('ed-')===0&&f!=='ed-star'){const it=edItem(+t.dataset.b,+t.dataset.i);
@@ -1148,12 +1345,14 @@ document.addEventListener('change',ev=>{
   if(f==='ed-star'){const it=edItem(+t.dataset.b,+t.dataset.i);if(it){if(t.checked){it.star=1;delete it.work;}else{delete it.star;if(!it.work)it.work=it.n||2;}it.chg=true;touch();render();}}
   if(f==='imp-file'&&t.files&&t.files[0]){const r=new FileReader();r.onload=()=>importText(String(r.result));r.readAsText(t.files[0]);t.value='';}
 });
+document.addEventListener('focusout',ev=>{const t=ev.target;if(t&&t.closest&&t.closest('.set')&&active())scheduleFold(2500);});
 document.addEventListener('keydown',ev=>{if(ev.key==='Escape'&&PK){PK=null;renderPicker();}});
 let rsT=null;window.addEventListener('resize',()=>{clearTimeout(rsT);rsT=setTimeout(()=>{if(UI.tab==='prog')drawCharts();},150);});
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')flush();});
 
 try{document.documentElement.lang='ru';}catch(e){}
 load();render();
+setTimeout(()=>{const w=active();if(w&&UI.tab==='train'&&w.ex.some(e=>e.sets.some(s=>s.r>0))){const c=markCurrent();if(c)scrollToRow($('#set-'+c.ei+'-'+c.si),true);}},300);
 
 if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});</script>
 </body></html>
