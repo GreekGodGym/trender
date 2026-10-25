@@ -397,7 +397,7 @@ function bestEver(id,exclWid){
 }
 function lastEntry(id,exclWid){const a=idx().byEx[id]||[];for(let i=a.length-1;i>=0;i--){if(a[i].w.id!==exclWid)return a[i];}return null;}
 function lastSame(id,exclWid,week){const a=idx().byEx[id]||[];const g=wkGrp(week);
-  if(g)for(let i=a.length-1;i>=0;i--){const en=a[i];if(en.w.id===exclWid)continue;if(wkGrp(en.w.week)===g)return en;}
+  if(g)for(let i=a.length-1;i>=0;i--){const en=a[i];if(en.w.id===exclWid)continue;if(en.w.week==null||wkGrp(en.w.week)===g)return en;}
   for(let i=a.length-1;i>=0;i--){if(a[i].w.id!==exclWid)return a[i];}return null;}
 function fmtSet(id,s){const k=exInfo(id).kind;const w=(k==='bw'&&s.w>0?'+':'')+fmtN(s.w);return w+'×'+fmtN(s.r);}
 function setsHTML(id,sets){return sets.filter(s=>s.r>0).map(s=>`<span class="${s.f&F.WU?'wu':''}">${fmtSet(id,s)}${s.f&F.DROP?' (дроп)':''}</span>`).join(' · ');}
