@@ -426,7 +426,28 @@ function evalSets(id,sets,plan,rows){
 function hash(s){let h=0;for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))>>>0;return h;}
 const pick=(arr,seed)=>arr[hash(String(seed))%arr.length];
 
-function progressionFor(id,plan,exclWid){
+/* тип недели: h — тяжёлая (красная и жёлтая), m — средняя, l — лёгкая */
+const wkGrp=wk=>wk==null?null:HEAVY(wk)?'h':wk===1?'m':'l';
+function e1Of(id,en){
+  let best=null;
+  for(const s of workOnly(en.sets)){const L=eff(id,s.w,en.w.d);const v=L*(1+s.r/30);if(!best||v>best.v)best={v,s};}
+  return best;
+}
+/* вес, с которым выйдет нижняя граница диапазона, по лучшему подходу другой недели (формула Эпли) */
+function estFrom(id,en,plan){
+  const rg=planRange(plan&&plan.reps);const b=e1Of(id,en);if(!rg||!b||!(b.v>0))return null;
+  const kind=exInfo(id).kind;const bw=bwAt(todayISO());const L=b.v/(1+rg.lo/30);
+  let w=kind==='bw'?L-bw:kind==='assist'?bw-L:L;
+  w=roundTo(w,stepFor(id));if(kind!=='w')w=Math.max(0,w);
+  return{w,e1:b.v,src:b.s,date:en.w.d};
+}
+function expectReps(id,e1,w){
+  const kind=exInfo(id).kind;const bw=bwAt(todayISO());
+  const L=kind==='bw'?bw+(w||0):kind==='assist'?bw-(w||0):(w||0);
+  if(!(L>0))return null;return Math.max(1,Math.min(20,Math.round((e1/L-1)*30)));
+}
+function progressionFor(id,plan,exclWid,week){
+  if(week===undefined){const cw=S.workouts.find(x=>x.id===exclWid);week=cw?cw.week:null;}
   const kind=exInfo(id).kind;const star=!!(plan&&plan.star);
   let ents=(idx().byEx[id]||[]).filter(en=>en.w.id!==exclWid);
   if(!ents.length)return{state:star?'light':'first',w:null};
@@ -444,8 +465,18 @@ function progressionFor(id,plan,exclWid){
     return{state:'light',w};
   }
   const noLight=ents.filter(en=>en.w.week!==3);
-  const same=plan&&plan.reps?noLight.filter(en=>en.e.plan&&en.e.plan.reps===plan.reps):[];
-  const src=same.length?same:(noLight.length?noLight:ents);
+  /* каждая неделя считается сама по себе: средняя сравнивается со средней, тяжёлая с тяжёлой */
+  const cg=wkGrp(week);let pool=noLight;
+  if(cg&&cg!=='l'&&plan&&plan.reps){
+    const mine=noLight.filter(en=>en.w.week==null||wkGrp(en.w.week)===cg);
+    if(mine.length)pool=mine;
+    else if(noLight.length){
+      const o=noLight[noLight.length-1];const x=estFrom(id,o,plan);
+      if(x)return{state:'est',w:x.w,base:null,est:x,exp:expectReps(id,x.e1,x.w),from:x.src};
+    }
+  }
+  const same=plan&&plan.reps?pool.filter(en=>en.e.plan&&en.e.plan.reps===plan.reps):[];
+  const src=same.length?same:(pool.length?pool:ents);
   let last=src[src.length-1];
   const rangePlan=last.e.plan&&last.e.plan.reps?last.e.plan:plan;
   const rows=last.sets.filter(s=>!(s.f&F.WU)&&!(s.f&F.DROP)).length;
@@ -455,16 +486,27 @@ function progressionFor(id,plan,exclWid){
     const w0=ws.length?(kind==='assist'?Math.min(...ws.map(s=>s.w)):Math.max(...ws.map(s=>s.w))):null;
     return{state:'hold',w:w0,base:w0};
   }
-  const prevE=src[src.length-2];
+  const prevE=src[src.length-2];let evP=null;
   if(prevE){
     const rp=prevE.e.plan&&prevE.e.plan.reps?prevE.e.plan:plan;
     const rowsP=prevE.sets.filter(s=>!(s.f&F.WU)&&!(s.f&F.DROP)).length;
-    const evP=evalSets(id,prevE.sets,rp,rowsP);
+    evP=evalSets(id,prevE.sets,rp,rowsP);
     if(evP&&evP.w===ev.w&&evP.avg>ev.avg){ev=evP;last=prevE;}
   }
   let state='hold',w=ev.w;
   if(ev.reached){state='up';w=bumpW(id,ev.w);}
   else if(ev.low)state='low';
+  /* сильно ниже диапазона (на два повтора и больше, или два раза подряд): предлагаем легче на 1–2 шага */
+  if(state==='low'&&ev.rg&&(kind==='assist'||ev.w>0)){
+    const sev=ev.avg<=ev.rg.lo-2||(evP&&evP.w===ev.w&&evP.low&&prevE!==last);
+    if(sev){
+      const st=stepFor(id);const x=estFrom(id,last,rangePlan);
+      let k=x?Math.round(Math.abs(ev.w-x.w)/st):1;k=Math.max(1,Math.min(2,k));
+      const nw=kind==='assist'?Math.round((ev.w+st*k)*100)/100:Math.max(0,Math.round((ev.w-st*k)*100)/100);
+      const b=e1Of(id,last);
+      return{state:'drop',w:nw,base:ev.w,ev,last,exp:b?expectReps(id,b.v,nw):null};
+    }
+  }
   if(state==='hold'){
     const tail=src.slice(-3);
     if(tail.length===3){
@@ -472,9 +514,20 @@ function progressionFor(id,plan,exclWid){
       if(evs.every(x=>x&&x.w===ev.w)&&Math.max(evs[1].avg,evs[2].avg)<=evs[0].avg)state='stall';
     }
   }
+  /* средняя неделя подтягивается за тяжёлой: если тяжёлая после последней средней даёт больший вес, берём его */
+  if(cg==='m'&&plan&&plan.reps&&state!=='stall'){
+    const hv=noLight.filter(en=>wkGrp(en.w.week)==='h'&&en.w.d>last.w.d);
+    if(hv.length){
+      const x=estFrom(id,hv[hv.length-1],plan);
+      if(x&&(kind==='assist'?x.w<w-1e-9:x.w>w+1e-9)){
+        const st=stepFor(id);const nw=Math.round((kind==='assist'?Math.max(x.w,w-2*st):Math.min(x.w,w+2*st))*100)/100;
+        return{state:'link',w:nw,base:ev.w,ev,last,est:x,exp:expectReps(id,x.e1,nw),from:x.src};
+      }
+    }
+  }
   return{state,w,base:ev.w,ev,last};
 }
-function suggestWork(id,plan,exclWid){return progressionFor(id,plan,exclWid).w;}
+function suggestWork(id,plan,exclWid,week){return progressionFor(id,plan,exclWid,week).w;}
 
 /* разминка: вес в долях рабочего и короткие повторы, чтобы не уставать */
 const WU_FR={1:[[.6,5]],2:[[.5,6],[.75,3]],3:[[.4,8],[.6,4],[.8,2]]};
@@ -488,14 +541,14 @@ function warmupSpec(id,workW,k){
     return{w:roundTo(workW*f,st),h};
   });
 }
-function buildRows(ex,wid){
+function buildRows(ex,wid,week){
   const p=ex.plan;const n=p.n||3;const work=p.star?n:Math.min(p.work||n,n);const wu=n-work;
-  const ww=suggestWork(ex.id,p,wid);const wws=warmupSpec(ex.id,ww,wu);
+  const ww=suggestWork(ex.id,p,wid,week);const wws=warmupSpec(ex.id,ww,wu);
   ex.sets=[];for(let i=0;i<n;i++)ex.sets.push(i<wu?{w:wws[i].w,r:null,f:F.WU,h:wws[i].h}:{w:ww,r:null,f:0});
 }
 function startWorkout(week,day,d){
   const plan=(planOf()[week]||[]).find(x=>x.n===day);const w={id:'a-'+Date.now(),d,src:'a',week,day,label:WEEKS[week].name+' неделя · Тренировка '+day,done:false,ex:[]};
-  if(plan)for(const b of plan.blocks)for(const it of b.items){const ex={id:it.id,g:b.g,plan:{n:it.n||3,reps:it.reps||'',work:it.work||it.n||3,star:!!it.star},sets:[]};buildRows(ex,w.id);w.ex.push(ex);}
+  if(plan)for(const b of plan.blocks)for(const it of b.items){const ex={id:it.id,g:b.g,plan:{n:it.n||3,reps:it.reps||'',work:it.work||it.n||3,star:!!it.star},sets:[]};buildRows(ex,w.id,week);w.ex.push(ex);}
   if(plan)for(const b of plan.blocks)for(const it of b.items)delete it.chg;
   S.workouts.push(w);touch();
 }
@@ -524,6 +577,18 @@ const COACH={
   'Раньше этого не делал. Подбери вес, чтобы вышло {диапазон} с запасом в 1–2 повтора.',
   'Новое упражнение: начни легко, цель сегодня: освоить технику, а не взять рекорд.',
   'Пока нет данных. Первый подход на лёгком весе, потом добавляй, пока не найдёшь рабочий.'],
+ est:[
+  'На такой неделе это упражнение ещё не делал. По прошлым записям ({из}) расчёт даёт {новый}: ждать около {ожид} повторов.',
+  'Своей истории на этой неделе пока нет. Прикинул от {из}: берём {новый}, должно выйти около {ожид}. Первый подход покажет, верно ли.',
+  'Вес для этой недели: {новый}, расчёт от {из}. Ждать около {ожид} повторов; если выйдет заметно больше, добавь в следующем подходе.'],
+ link:[
+  'После тяжёлой ({из}) расчёт позволяет больше: {новый} вместо {вес}. Ждать около {ожид} повторов.',
+  'Тяжёлая неделя пошла вверх, подтягиваем среднюю: {новый}. Ожидание: около {ожид} повторов.',
+  'Сила выросла на тяжёлой ({из}). Сегодня {новый}, должно выйти около {ожид} повторов.'],
+ drop:[
+  'В прошлый раз {вес}×{повт}, это сильно ниже диапазона. Сегодня на шаг-два легче: {новый}. Ждать около {ожид} повторов, это нормально.',
+  'Вес {вес} был тяжеловат: вышло {повт}. Берём {новый}, цель: дойти до {низ} в каждом подходе.',
+  'Не геройствуем: снижаем до {новый}. Закрепим чистые повторы, а потом вернёмся выше.'],
  light:[
   'Лёгкая неделя: вес примерно 55% от рабочего. Тут важны техника и отдых, а не рекорды.',
   'Сегодня разгрузка. Делай чисто и без отказа, с запасом в 3–4 повтора.',
@@ -540,7 +605,9 @@ function coachLine(w,e,ei,prog){
     .replace(/\{новый\}/g,wt(prog.w))
     .replace(/\{повт\}/g,rp)
     .replace(/\{низ\}/g,rg?rg.lo:'')
-    .replace(/\{диапазон\}/g,rng);
+    .replace(/\{диапазон\}/g,rng)
+    .replace(/\{ожид\}/g,prog.exp!=null?prog.exp:'')
+    .replace(/\{из\}/g,prog.from?wt(prog.from.w)+'×'+prog.from.r:'');
 }
 const REC=['Запиши и не гонись дальше сегодня.','Хороший подход, остальные сделай спокойнее.','Выше прошлого лучшего. Закрепляй в следующие разы.'];
 function recHTML(w,e,ei,si){return `<span class="rec" id="rec-${ei}-${si}"><b>Рекорд!</b> ${esc(pick(REC,w.id+'|'+e.id+'|'+ei+'|'+si))}</span>`;}
