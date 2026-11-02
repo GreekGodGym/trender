@@ -298,15 +298,48 @@ input[type="date"]::-webkit-calendar-picker-indicator{margin:0}
 @media (prefers-reduced-motion: reduce){.set.cur{animation:none}}
 .last .lrow.wk0 .ch,.last .lrow.wk1 .ch,.last .lrow.wk2 .ch,.last .lrow.wk3 .ch{border-width:2px;border-color:var(--pc)}
 .wtag{font-size:11px;font-weight:600;color:var(--pc,var(--muted));border:1px solid var(--pc,var(--line));border-radius:6px;padding:0 6px;line-height:17px;white-space:nowrap}
+
+/* ---- v12: summary, history badges, trend ---- */
+.sum-h{display:flex;align-items:center;gap:12px}
+.sum-h div{display:flex;flex-direction:column}
+.sum-h b{font-family:var(--font-display);font-size:20px;font-weight:600}
+.sum-h span{font-size:13px;color:var(--ink-2)}
+.verdict{border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:4px;background:var(--surface);box-shadow:inset 4px 0 0 var(--muted)}
+.verdict b{font-family:var(--font-display);font-size:19px;letter-spacing:.04em;text-transform:uppercase}
+.verdict span{font-size:14px;color:var(--ink-2)}
+.v-strong{box-shadow:inset 4px 0 0 var(--good);background:var(--good-soft)}
+.v-good{box-shadow:inset 4px 0 0 var(--good)}
+.v-work{box-shadow:inset 4px 0 0 var(--blue)}
+.v-weak{box-shadow:inset 4px 0 0 var(--red)}
+.v-light{box-shadow:inset 4px 0 0 var(--blue)}
+.sum-list{gap:0;padding:4px 14px}
+.sr{padding:9px 0;border-top:1px solid var(--line-2)}
+.sr:first-child{border-top:0}
+.sr1{display:flex;align-items:baseline;gap:8px}
+.sr1 i{font-style:normal;width:16px;flex:none;text-align:center;color:var(--muted);font-weight:700}
+.sr1 b{font-weight:600;font-size:14.5px;min-width:0;flex:1}
+.sr1 em{font-style:normal;font-size:13px;color:var(--muted);white-space:nowrap}
+.sr2{font-size:13px;color:var(--ink-2);margin-left:24px;font-variant-numeric:tabular-nums}
+.s-up .sr1 i,.s-up .sr1 em{color:var(--good)}
+.s-up .sr1 em{font-weight:600}
+.s-down .sr1 i,.s-down .sr1 em{color:var(--red)}
+.hb i{font-style:normal;font-weight:600;margin-right:6px}
+.hb i.up{color:var(--good)}
+.hb i.dn{color:var(--red)}
+.trend .tr-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.trend .tr-row span{display:flex;flex-direction:column;align-items:flex-start;font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}
+.trend .tr-row small{font-size:12px;font-weight:400;color:var(--muted)}
+.trend .up{color:var(--good)}
+.trend .dn{color:var(--red)}
 </style></head><body>
 <header class="top"><div class="wrap"><span class="brand">Журнал подходов</span><div id="rest" class="rest" hidden></div><span class="top-meta" id="top-meta"></span></div></header>
 <main class="wrap" id="view"></main>
 <nav class="tabs" aria-label="Разделы"><div class="wrap" id="tabs"></div></nav>
 <div id="sheet" hidden></div>
 <div id="fx" class="fx" hidden></div>
-<script>const CAT={"squat": ["Приседания со штангой", "Ноги", "w"], "rdl": ["Румынская тяга", "Ноги", "w"], "deadlift": ["Становая тяга", "Ноги", "w"], "bulgarian": ["Болгарские выпады", "Ноги", "w"], "pendulum": ["Маятниковый присед", "Ноги", "w"], "rev_pendulum": ["Обратный маятник", "Ноги", "w"], "leg_press": ["Жим ногами в платформе", "Ноги", "w"], "leg_ext": ["Разгибания ног", "Ноги", "w"], "leg_curl_lying": ["Сгибания ног лёжа", "Ноги", "w"], "leg_curl_seated": ["Сгибания ног сидя", "Ноги", "w"], "adduction": ["Сведение ног", "Ноги", "w"], "abduction": ["Разведение ног", "Ноги", "w"], "calf_smith": ["Икры в Смите", "Ноги", "w"], "calf_press": ["Икры в жиме платформы", "Ноги", "w"], "calf_machine": ["Икры в тренажёре", "Ноги", "w"], "hyperext": ["Гиперэкстензия", "Спина", "w"], "bench": ["Жим лёжа", "Грудь", "w"], "incline_bb": ["Жим штанги в наклоне", "Грудь", "w"], "incline_smith": ["Жим в Смите в наклоне", "Грудь", "w"], "db_bench": ["Жим гантелей лёжа", "Грудь", "w"], "db_incline": ["Жим гантелей в наклоне", "Грудь", "w"], "decline": ["Жим под отрицательным наклоном", "Грудь", "w"], "hammer": ["Жим в Хаммере", "Грудь", "w"], "chest_press": ["Жим от груди в тренажёре", "Грудь", "w"], "chest_tri_press": ["Жим на грудь-трицепс в тренажёре", "Грудь", "w"], "pec_deck": ["Бабочка", "Грудь", "w"], "cable_mid": ["Кроссовер на центр груди", "Грудь", "w"], "cable_upper": ["Кроссовер на верх груди", "Грудь", "w"], "db_fly": ["Разводка гантелей", "Грудь", "w"], "ohp": ["Армейский жим", "Плечи", "w"], "db_ohp": ["Жим гантелей на плечи", "Плечи", "w"], "machine_ohp": ["Жим на плечи в тренажёре", "Плечи", "w"], "lat_machine": ["Боковой подъём в тренажёре", "Плечи", "w"], "db_lat": ["Махи гантелей", "Плечи", "w"], "cable_lat": ["Махи в кроссовере", "Плечи", "w"], "front_machine": ["Передняя дельта в тренажёре", "Плечи", "w"], "front_db": ["Махи на передние дельты", "Плечи", "w"], "front_one_db": ["Подъём гантели перед собой", "Плечи", "w"], "upright": ["Протяжка", "Плечи", "w"], "rear_pec": ["Задние дельты в бабочке", "Плечи", "w"], "rear_cable": ["Задние дельты в кроссовере", "Плечи", "w"], "rear_db": ["Разведение гантелей (задние дельты)", "Плечи", "w"], "shrugs": ["Шраги", "Плечи", "w"], "pullup": ["Подтягивания", "Спина", "bw"], "assisted": ["Гравитрон", "Спина", "assist"], "bb_row": ["Тяга штанги в наклоне", "Спина", "w"], "db_row": ["Тяга гантели", "Спина", "w"], "db_row_chest": ["Тяга гантели в упоре", "Спина", "w"], "tbar": ["Тяга Т-грифа", "Спина", "w"], "plate_row": ["Тяга в тренажёре с блинами", "Спина", "w"], "lat_v": ["Вертикальная тяга V-рукоять", "Спина", "w"], "lat_wide_par": ["Вертикальная тяга шир. паралл. хват", "Спина", "w"], "lat_wide": ["Вертикальная тяга широкий хват", "Спина", "w"], "row_v": ["Горизонтальная тяга V-рукоять", "Спина", "w"], "row_wide": ["Горизонтальная тяга шир. паралл. хват", "Спина", "w"], "dips": ["Брусья с весом", "Трицепс", "bw"], "dips_machine": ["Брусья в тренажёре", "Трицепс", "w"], "close_grip": ["Жим узким хватом", "Трицепс", "w"], "french": ["Французский жим", "Трицепс", "w"], "db_overhead": ["Разгибание гантели из-за головы", "Трицепс", "w"], "cable_overhead": ["Разгибания из-за головы в кроссовере", "Трицепс", "w"], "rope": ["Разгибания с косичкой", "Трицепс", "w"], "boomerang": ["Разгибания с бумерангом", "Трицепс", "w"], "straight_bar": ["Разгибания с прямой рукояткой", "Трицепс", "w"], "ez_curl": ["Кривой гриф", "Бицепс", "w"], "reverse_curl": ["Обратный хват (кривой гриф)", "Бицепс", "w"], "incline_db_curl": ["Подъём гантелей сидя в наклоне", "Бицепс", "w"], "standing_db_curl": ["Подъём гантелей стоя", "Бицепс", "w"], "hammer_curl": ["Молотки", "Бицепс", "w"], "cable_curl": ["Тяга в кроссовере", "Бицепс", "w"], "preacher": ["Скамья Скотта", "Бицепс", "w"], "concentration": ["Концентрированный подъём", "Бицепс", "w"], "abs_bench": ["Скамья (пресс)", "Пресс", "w"], "abs_pray": ["Молитва", "Пресс", "w"], "abs_snail": ["Улитка", "Пресс", "w"], "abs_machine": ["Пресс в тренажёре", "Пресс", "w"], "fa_db": ["Предплечья с гантелями", "Предплечья", "w"], "fa_bar_in": ["Штанга сидя (внутр.)", "Предплечья", "w"], "fa_bar_out": ["Штанга сидя (внеш.)", "Предплечья", "w"], "fa_rot": ["Ротация", "Предплечья", "w"], "fa_hammer": ["Молотки (предплечья)", "Предплечья", "w"]};
-const PLAN=[[{"n": 1, "blocks": [{"g": "Ноги", "items": [{"id": "squat", "n": 5, "reps": "6-8", "work": 3}, {"id": "leg_curl_lying", "n": 2, "reps": "8-10", "work": 2, "chg": true}, {"id": "calf_smith", "n": 3, "reps": "10-12", "work": 2}]}, {"g": "Плечи", "items": [{"id": "ohp", "n": 5, "reps": "6-8", "work": 3}, {"id": "lat_machine", "n": 3, "reps": "8-10", "work": 3, "chg": true}, {"id": "machine_ohp", "n": 2, "reps": "10-12", "work": 2, "chg": true}]}, {"g": "Спина", "items": [{"id": "tbar", "n": 5, "reps": "6-8", "work": 3}, {"id": "lat_wide_par", "n": 3, "reps": "8-10", "work": 2, "chg": true}]}]}, {"n": 2, "blocks": [{"g": "Ноги", "items": [{"id": "rdl", "n": 5, "reps": "6-8", "work": 3, "chg": true}, {"id": "pendulum", "n": 4, "reps": "8-10", "work": 3, "chg": true}]}, {"g": "Грудь", "items": [{"id": "bench", "n": 6, "reps": "6-8", "work": 2}, {"id": "db_incline", "n": 3, "reps": "6-8", "work": 2}, {"id": "hammer", "n": 2, "reps": "6-8", "work": 2, "chg": true}]}, {"g": "Бицепс", "items": [{"id": "ez_curl", "n": 3, "reps": "8-10", "work": 2, "chg": true}, {"id": "incline_db_curl", "n": 3, "reps": "8-10", "work": 3, "chg": true}, {"id": "cable_curl", "n": 2, "reps": "8-10", "work": 2, "chg": true}]}]}, {"n": 3, "blocks": [{"g": "Спина", "items": [{"id": "pullup", "n": 4, "reps": "6-8", "work": 2}, {"id": "bb_row", "n": 3, "reps": "6-8", "work": 2, "chg": true}, {"id": "assisted", "n": 3, "reps": "6-8", "work": 3, "chg": true}]}, {"g": "Трицепс", "items": [{"id": "dips", "n": 4, "reps": "6-8", "work": 2}, {"id": "french", "n": 2, "reps": "8-10", "work": 2, "chg": true}]}, {"g": "Плечи", "items": [{"id": "db_ohp", "n": 4, "reps": "8-10", "work": 2}, {"id": "rear_db", "n": 2, "reps": "8-10", "work": 2, "chg": true}, {"id": "db_lat", "n": 2, "reps": "10-12", "work": 2, "chg": true}]}]}, {"n": 4, "blocks": [{"g": "Пресс", "items": [{"id": "abs_bench"}, {"id": "abs_pray"}, {"id": "abs_snail"}]}, {"g": "Предплечья", "items": [{"id": "fa_bar_in"}, {"id": "fa_bar_out"}, {"id": "fa_rot"}, {"id": "fa_hammer"}]}]}], [{"n": 1, "blocks": [{"g": "Ноги", "items": [{"id": "bulgarian", "n": 5, "reps": "8-10", "work": 3}, {"id": "pendulum", "n": 3, "reps": "8-10", "work": 2}, {"id": "leg_curl_lying", "n": 2, "reps": "8-10", "work": 2, "chg": true}, {"id": "calf_press", "n": 3, "reps": "10-12", "work": 2}]}, {"g": "Плечи", "items": [{"id": "db_ohp", "n": 5, "reps": "8-10", "work": 3}, {"id": "db_lat", "n": 3, "reps": "8-10", "work": 3}, {"id": "rear_pec", "n": 2, "reps": "10-12", "work": 2, "chg": true}]}, {"g": "Спина", "items": [{"id": "bb_row", "n": 5, "reps": "8-10", "work": 3}]}]}, {"n": 2, "blocks": [{"g": "Ноги", "items": [{"id": "rdl", "n": 4, "reps": "8-10", "work": 2, "chg": true}, {"id": "leg_ext", "n": 2, "reps": "8-10", "work": 2, "chg": true}]}, {"g": "Грудь", "items": [{"id": "incline_smith", "n": 5, "reps": "8-10", "work": 3}, {"id": "bench", "n": 3, "reps": "8-10", "work": 2, "chg": true}, {"id": "pec_deck", "n": 2, "reps": "8-10", "work": 2, "chg": true}]}, {"g": "Бицепс", "items": [{"id": "cable_curl", "n": 3, "reps": "10-12", "work": 2, "chg": true}, {"id": "incline_db_curl", "n": 3, "reps": "10-12", "work": 3, "chg": true}, {"id": "preacher", "n": 2, "reps": "10-12", "work": 2, "chg": true}]}]}, {"n": 3, "blocks": [{"g": "Спина", "items": [{"id": "tbar", "n": 5, "reps": "8-10", "work": 3}, {"id": "lat_wide_par", "n": 4, "reps": "8-10", "work": 3}, {"id": "db_row", "n": 2, "reps": "10-14", "work": 2, "chg": true}]}, {"g": "Трицепс", "items": [{"id": "dips", "n": 4, "reps": "8-10", "work": 2}, {"id": "cable_overhead", "n": 2, "reps": "10-12", "work": 2, "chg": true}]}, {"g": "Плечи", "items": [{"id": "ohp", "n": 4, "reps": "8-10", "work": 2}, {"id": "lat_machine", "n": 2, "reps": "10-12", "work": 2, "chg": true}]}]}, {"n": 4, "blocks": [{"g": "Пресс", "items": [{"id": "abs_bench"}, {"id": "abs_pray"}, {"id": "abs_snail"}]}, {"g": "Предплечья", "items": [{"id": "fa_bar_in"}, {"id": "fa_bar_out"}, {"id": "fa_rot"}, {"id": "fa_hammer"}]}]}], [{"n": 1, "blocks": [{"g": "Ноги", "items": [{"id": "squat", "n": 5, "reps": "6-8", "work": 3}, {"id": "leg_curl_lying", "n": 2, "reps": "8-10", "work": 2, "chg": true}, {"id": "calf_smith", "n": 3, "reps": "10-12", "work": 2}]}, {"g": "Плечи", "items": [{"id": "ohp", "n": 5, "reps": "6-8", "work": 3}, {"id": "lat_machine", "n": 3, "reps": "8-10", "work": 3, "chg": true}, {"id": "machine_ohp", "n": 2, "reps": "10-12", "work": 2, "chg": true}]}, {"g": "Спина", "items": [{"id": "plate_row", "n": 5, "reps": "6-8", "work": 3}, {"id": "lat_wide_par", "n": 3, "reps": "8-10", "work": 2, "chg": true}]}]}, {"n": 2, "blocks": [{"g": "Ноги", "items": [{"id": "rdl", "n": 5, "reps": "6-8", "work": 3, "chg": true}, {"id": "pendulum", "n": 4, "reps": "8-10", "work": 3, "chg": true}]}, {"g": "Грудь", "items": [{"id": "incline_bb", "n": 6, "reps": "6-8", "work": 2}, {"id": "db_bench", "n": 3, "reps": "6-8", "work": 2}, {"id": "hammer", "n": 2, "reps": "6-8", "work": 2, "chg": true}]}, {"g": "Бицепс", "items": [{"id": "ez_curl", "n": 3, "reps": "8-10", "work": 2, "chg": true}, {"id": "incline_db_curl", "n": 3, "reps": "8-10", "work": 3, "chg": true}, {"id": "cable_curl", "n": 2, "reps": "8-10", "work": 2, "chg": true}]}]}, {"n": 3, "blocks": [{"g": "Спина", "items": [{"id": "pullup", "n": 4, "reps": "6-8", "work": 2}, {"id": "bb_row", "n": 3, "reps": "6-8", "work": 2, "chg": true}, {"id": "assisted", "n": 3, "reps": "6-8", "work": 3, "chg": true}]}, {"g": "Трицепс", "items": [{"id": "dips", "n": 4, "reps": "6-8", "work": 2}, {"id": "french", "n": 2, "reps": "8-10", "work": 2, "chg": true}]}, {"g": "Плечи", "items": [{"id": "db_ohp", "n": 4, "reps": "8-10", "work": 2}, {"id": "rear_db", "n": 2, "reps": "8-10", "work": 2, "chg": true}, {"id": "db_lat", "n": 2, "reps": "10-12", "work": 2, "chg": true}]}]}, {"n": 4, "blocks": [{"g": "Пресс", "items": [{"id": "abs_bench"}, {"id": "abs_pray"}, {"id": "abs_snail"}]}, {"g": "Предплечья", "items": [{"id": "fa_bar_in"}, {"id": "fa_bar_out"}, {"id": "fa_rot"}, {"id": "fa_hammer"}]}]}], [{"n": 1, "blocks": [{"g": "Ноги", "items": [{"id": "pendulum", "n": 3, "reps": "10-12", "star": 1}, {"id": "rdl", "n": 3, "reps": "10-12", "star": 1}, {"id": "leg_ext", "n": 2, "reps": "10-12", "star": 1}, {"id": "calf_press", "n": 3, "reps": "12-14"}]}, {"g": "Плечи", "items": [{"id": "db_ohp", "n": 3, "reps": "10-12", "star": 1}, {"id": "db_lat", "n": 2, "reps": "10-12", "star": 1}, {"id": "shrugs", "n": 3, "reps": "12-15"}]}, {"g": "Спина", "items": [{"id": "db_row", "n": 3, "reps": "10-14", "star": 1}, {"id": "plate_row", "n": 3, "reps": "10-12"}]}]}, {"n": 2, "blocks": [{"g": "Грудь", "items": [{"id": "cable_upper", "n": 3, "reps": "10-12"}, {"id": "hammer", "n": 3, "reps": "10-12", "star": 1}, {"id": "pec_deck", "n": 2, "reps": "10-12", "star": 1}]}, {"g": "Бицепс", "items": [{"id": "standing_db_curl", "n": 3, "reps": "10-12"}, {"id": "hammer_curl", "n": 2, "reps": "10-12"}, {"id": "preacher", "n": 3, "reps": "10-12", "star": 1}]}, {"g": "Ноги", "items": [{"id": "adduction", "n": 3, "reps": "12-15", "star": 1}, {"id": "leg_curl_lying", "n": 2, "reps": "12-15", "star": 1}, {"id": "abduction", "n": 2, "reps": "12-15", "star": 1}]}]}, {"n": 3, "blocks": [{"g": "Спина", "items": [{"id": "pullup", "n": 2, "reps": "8-10", "star": 1}, {"id": "lat_v", "n": 2, "reps": "10-12", "star": 1}, {"id": "lat_wide_par", "n": 3, "reps": "10-12", "star": 1}]}, {"g": "Трицепс", "items": [{"id": "cable_overhead", "n": 2, "reps": "10-12"}, {"id": "dips", "n": 3, "reps": "12-14", "star": 1}]}, {"g": "Плечи", "items": [{"id": "lat_machine", "n": 3, "reps": "8-10", "star": 1}, {"id": "rear_db", "n": 3, "reps": "12-15", "star": 1}]}]}, {"n": 4, "blocks": [{"g": "Пресс", "items": [{"id": "abs_bench"}, {"id": "abs_pray"}, {"id": "abs_snail"}]}, {"g": "Предплечья", "items": [{"id": "fa_bar_in"}, {"id": "fa_bar_out"}, {"id": "fa_rot"}, {"id": "fa_hammer"}]}]}]];
-const PLAN_VER=2;
+<script>const CAT={"squat": ["Приседания со штангой", "Ноги", "w"], "rdl": ["Румынская тяга", "Ноги", "w"], "deadlift": ["Становая тяга", "Ноги", "w"], "bulgarian": ["Болгарские выпады", "Ноги", "w"], "pendulum": ["Маятниковый присед", "Ноги", "w"], "rev_pendulum": ["Обратный маятник", "Ноги", "w"], "leg_press": ["Жим ногами в платформе", "Ноги", "w"], "leg_ext": ["Разгибания ног", "Ноги", "w"], "leg_curl_lying": ["Сгибания ног лёжа", "Ноги", "w"], "leg_curl_seated": ["Сгибания ног сидя", "Ноги", "w"], "adduction": ["Сведение ног", "Ноги", "w"], "abduction": ["Разведение ног", "Ноги", "w"], "calf_smith": ["Икры в Смите", "Ноги", "w"], "calf_press": ["Икры в жиме платформы", "Ноги", "w"], "calf_machine": ["Икры в тренажёре", "Ноги", "w"], "hyperext": ["Гиперэкстензия", "Спина", "bw"], "bench": ["Жим лёжа", "Грудь", "w"], "incline_bb": ["Жим штанги в наклоне", "Грудь", "w"], "incline_smith": ["Жим в Смите в наклоне", "Грудь", "w"], "db_bench": ["Жим гантелей лёжа", "Грудь", "w"], "db_incline": ["Жим гантелей в наклоне", "Грудь", "w"], "decline": ["Жим под отрицательным наклоном", "Грудь", "w"], "hammer": ["Жим в Хаммере", "Грудь", "w"], "chest_press": ["Жим от груди в тренажёре", "Грудь", "w"], "chest_tri_press": ["Жим на грудь-трицепс в тренажёре", "Грудь", "w"], "pec_deck": ["Бабочка", "Грудь", "w"], "cable_mid": ["Кроссовер на центр груди", "Грудь", "w"], "cable_upper": ["Кроссовер на верх груди", "Грудь", "w"], "db_fly": ["Разводка гантелей", "Грудь", "w"], "ohp": ["Армейский жим", "Плечи", "w"], "db_ohp": ["Жим гантелей на плечи", "Плечи", "w"], "machine_ohp": ["Жим на плечи в тренажёре", "Плечи", "w"], "lat_machine": ["Боковой подъём в тренажёре", "Плечи", "w"], "db_lat": ["Махи гантелей", "Плечи", "w"], "cable_lat": ["Махи в кроссовере", "Плечи", "w"], "front_machine": ["Передняя дельта в тренажёре", "Плечи", "w"], "front_db": ["Махи на передние дельты", "Плечи", "w"], "front_one_db": ["Подъём гантели перед собой", "Плечи", "w"], "upright": ["Протяжка", "Плечи", "w"], "rear_pec": ["Задние дельты в бабочке", "Плечи", "w"], "rear_cable": ["Задние дельты в кроссовере", "Плечи", "w"], "rear_db": ["Разведение гантелей в стороны", "Плечи", "w"], "shrugs": ["Шраги", "Плечи", "w"], "pullup": ["Подтягивания", "Спина", "bw"], "assisted": ["Гравитрон", "Спина", "assist"], "bb_row": ["Тяга штанги в наклоне", "Спина", "w"], "db_row": ["Тяга гантели", "Спина", "w"], "db_row_chest": ["Тяга гантели в упоре", "Спина", "w"], "tbar": ["Тяга Т-грифа", "Спина", "w"], "plate_row": ["Тяга в тренажёре с блинами", "Спина", "w"], "lat_v": ["Вертикальная тяга V-рукоять", "Спина", "w"], "lat_wide_par": ["Вертикальная тяга шир. паралл. хват", "Спина", "w"], "lat_wide": ["Вертикальная тяга широкий хват", "Спина", "w"], "row_v": ["Горизонтальная тяга V-рукоять", "Спина", "w"], "row_wide": ["Горизонтальная тяга шир. паралл. хват", "Спина", "w"], "dips": ["Брусья с весом", "Трицепс", "bw"], "dips_machine": ["Брусья в тренажёре", "Трицепс", "w"], "close_grip": ["Жим узким хватом", "Трицепс", "w"], "french": ["Французский жим", "Трицепс", "w"], "db_overhead": ["Разгибание гантели из-за головы", "Трицепс", "w"], "cable_overhead": ["Разгибания из-за головы в кроссовере", "Трицепс", "w"], "rope": ["Разгибания с косичкой", "Трицепс", "w"], "boomerang": ["Разгибания с бумерангом", "Трицепс", "w"], "straight_bar": ["Разгибания с прямой рукояткой", "Трицепс", "w"], "ez_curl": ["Кривой гриф", "Бицепс", "w"], "reverse_curl": ["Обратный хват (кривой гриф)", "Бицепс", "w"], "incline_db_curl": ["Подъём гантелей сидя в наклоне", "Бицепс", "w"], "standing_db_curl": ["Подъём гантелей стоя", "Бицепс", "w"], "hammer_curl": ["Молотки", "Бицепс", "w"], "cable_curl": ["Тяга в кроссовере", "Бицепс", "w"], "preacher": ["Скамья Скотта", "Бицепс", "w"], "concentration": ["Концентрированный подъём", "Бицепс", "w"], "abs_bench": ["Скамья (пресс)", "Пресс", "w"], "abs_pray": ["Молитва", "Пресс", "w"], "abs_snail": ["Улитка", "Пресс", "w"], "abs_machine": ["Пресс в тренажёре", "Пресс", "w"], "fa_db": ["Предплечья с гантелями", "Предплечья", "w"], "fa_bar_in": ["Штанга сидя (внутр.)", "Предплечья", "w"], "fa_bar_out": ["Штанга сидя (внеш.)", "Предплечья", "w"], "fa_rot": ["Ротация", "Предплечья", "w"], "fa_hammer": ["Молотки (предплечья)", "Предплечья", "w"]};
+const PLAN=[[{"n": 1, "blocks": [{"g": "Ноги", "items": [{"id": "squat", "n": 5, "reps": "6-8", "work": 3}, {"id": "leg_curl_lying", "n": 2, "reps": "8-10", "work": 2}, {"id": "calf_smith", "n": 3, "reps": "10-12", "work": 3, "chg": true}]}, {"g": "Плечи", "items": [{"id": "ohp", "n": 5, "reps": "6-8", "work": 3}, {"id": "lat_machine", "n": 3, "reps": "8-10", "work": 3}, {"id": "machine_ohp", "n": 2, "reps": "10-12", "work": 2}]}, {"g": "Спина", "items": [{"id": "row_v", "n": 5, "reps": "6-8", "work": 3, "chg": true}, {"id": "lat_wide_par", "n": 3, "reps": "8-10", "work": 2}]}]}, {"n": 2, "blocks": [{"g": "Ноги", "items": [{"id": "rdl", "n": 5, "reps": "6-8", "work": 3}, {"id": "pendulum", "n": 4, "reps": "8-10", "work": 3}]}, {"g": "Грудь", "items": [{"id": "bench", "n": 5, "reps": "6-8", "work": 3, "chg": true}, {"id": "db_incline", "n": 3, "reps": "6-8", "work": 2}, {"id": "hammer", "n": 2, "reps": "6-8", "work": 2}]}, {"g": "Бицепс", "items": [{"id": "ez_curl", "n": 3, "reps": "8-10", "work": 2}, {"id": "incline_db_curl", "n": 3, "reps": "8-10", "work": 3}, {"id": "cable_curl", "n": 2, "reps": "8-10", "work": 2}]}]}, {"n": 3, "blocks": [{"g": "Спина", "items": [{"id": "pullup", "n": 4, "reps": "6-8", "work": 3, "chg": true}, {"id": "bb_row", "n": 3, "reps": "6-8", "work": 2}, {"id": "assisted", "n": 2, "reps": "8-10", "work": 2, "chg": true}]}, {"g": "Трицепс", "items": [{"id": "dips", "n": 4, "reps": "6-8", "work": 2}, {"id": "french", "n": 2, "reps": "8-10", "work": 2}]}, {"g": "Плечи", "items": [{"id": "db_ohp", "n": 4, "reps": "8-10", "work": 2}, {"id": "rear_db", "n": 2, "reps": "8-10", "work": 2}, {"id": "rear_pec", "n": 2, "reps": "10-12", "work": 2, "chg": true}]}]}, {"n": 4, "blocks": [{"g": "Пресс", "items": [{"id": "abs_bench"}, {"id": "abs_pray"}, {"id": "abs_snail"}]}, {"g": "Предплечья", "items": [{"id": "fa_bar_in"}, {"id": "fa_bar_out"}, {"id": "fa_rot"}, {"id": "fa_hammer"}]}]}], [{"n": 1, "blocks": [{"g": "Ноги", "items": [{"id": "bulgarian", "n": 4, "reps": "8-10", "work": 3, "chg": true}, {"id": "pendulum", "n": 3, "reps": "8-10", "work": 2}, {"id": "leg_curl_lying", "n": 2, "reps": "8-10", "work": 2}]}, {"g": "Плечи", "items": [{"id": "db_ohp", "n": 5, "reps": "8-10", "work": 3}, {"id": "db_lat", "n": 3, "reps": "8-10", "work": 3}, {"id": "machine_ohp", "n": 2, "reps": "10-12", "work": 2, "chg": true}]}, {"g": "Спина", "items": [{"id": "bb_row", "n": 5, "reps": "8-10", "work": 3}, {"id": "hyperext", "n": 3, "reps": "10-12", "work": 2, "chg": true}]}]}, {"n": 2, "blocks": [{"g": "Ноги", "items": [{"id": "rdl", "n": 4, "reps": "8-10", "work": 2}, {"id": "leg_ext", "n": 2, "reps": "8-10", "work": 2}, {"id": "calf_press", "n": 3, "reps": "10-12", "work": 3, "chg": true}]}, {"g": "Грудь", "items": [{"id": "incline_smith", "n": 5, "reps": "8-10", "work": 3}, {"id": "bench", "n": 3, "reps": "8-10", "work": 2}, {"id": "pec_deck", "n": 2, "reps": "8-10", "work": 2}]}, {"g": "Бицепс", "items": [{"id": "cable_curl", "n": 3, "reps": "10-12", "work": 2}, {"id": "incline_db_curl", "n": 3, "reps": "10-12", "work": 3}, {"id": "preacher", "n": 2, "reps": "10-12", "work": 2}]}]}, {"n": 3, "blocks": [{"g": "Спина", "items": [{"id": "tbar", "n": 5, "reps": "8-10", "work": 3}, {"id": "lat_wide_par", "n": 4, "reps": "8-10", "work": 3}, {"id": "db_row", "n": 2, "reps": "10-14", "work": 2}]}, {"g": "Трицепс", "items": [{"id": "dips", "n": 4, "reps": "8-10", "work": 2}, {"id": "db_overhead", "n": 2, "reps": "10-12", "work": 2, "chg": true}]}, {"g": "Плечи", "items": [{"id": "ohp", "n": 4, "reps": "8-10", "work": 2}, {"id": "lat_machine", "n": 2, "reps": "10-12", "work": 2}, {"id": "rear_pec", "n": 2, "reps": "10-12", "work": 2, "chg": true}]}]}, {"n": 4, "blocks": [{"g": "Пресс", "items": [{"id": "abs_bench"}, {"id": "abs_pray"}, {"id": "abs_snail"}]}, {"g": "Предплечья", "items": [{"id": "fa_bar_in"}, {"id": "fa_bar_out"}, {"id": "fa_rot"}, {"id": "fa_hammer"}]}]}], [{"n": 1, "blocks": [{"g": "Ноги", "items": [{"id": "squat", "n": 5, "reps": "6-8", "work": 3}, {"id": "leg_curl_lying", "n": 2, "reps": "8-10", "work": 2}, {"id": "calf_smith", "n": 3, "reps": "10-12", "work": 3, "chg": true}]}, {"g": "Плечи", "items": [{"id": "ohp", "n": 5, "reps": "6-8", "work": 3}, {"id": "lat_machine", "n": 3, "reps": "8-10", "work": 3}, {"id": "machine_ohp", "n": 2, "reps": "10-12", "work": 2}]}, {"g": "Спина", "items": [{"id": "row_v", "n": 5, "reps": "6-8", "work": 3}, {"id": "lat_wide_par", "n": 3, "reps": "8-10", "work": 2}]}]}, {"n": 2, "blocks": [{"g": "Ноги", "items": [{"id": "rdl", "n": 5, "reps": "6-8", "work": 3}, {"id": "pendulum", "n": 4, "reps": "8-10", "work": 3}]}, {"g": "Грудь", "items": [{"id": "incline_bb", "n": 5, "reps": "6-8", "work": 3, "chg": true}, {"id": "db_bench", "n": 3, "reps": "6-8", "work": 2}, {"id": "hammer", "n": 2, "reps": "6-8", "work": 2}]}, {"g": "Бицепс", "items": [{"id": "ez_curl", "n": 3, "reps": "8-10", "work": 2}, {"id": "incline_db_curl", "n": 3, "reps": "8-10", "work": 3}, {"id": "cable_curl", "n": 2, "reps": "8-10", "work": 2}]}]}, {"n": 3, "blocks": [{"g": "Спина", "items": [{"id": "pullup", "n": 4, "reps": "6-8", "work": 3, "chg": true}, {"id": "bb_row", "n": 3, "reps": "6-8", "work": 2}, {"id": "assisted", "n": 2, "reps": "8-10", "work": 2, "chg": true}]}, {"g": "Трицепс", "items": [{"id": "dips", "n": 4, "reps": "6-8", "work": 2}, {"id": "french", "n": 2, "reps": "8-10", "work": 2}]}, {"g": "Плечи", "items": [{"id": "db_ohp", "n": 4, "reps": "8-10", "work": 2}, {"id": "rear_db", "n": 2, "reps": "8-10", "work": 2}, {"id": "rear_pec", "n": 2, "reps": "10-12", "work": 2, "chg": true}]}]}, {"n": 4, "blocks": [{"g": "Пресс", "items": [{"id": "abs_bench"}, {"id": "abs_pray"}, {"id": "abs_snail"}]}, {"g": "Предплечья", "items": [{"id": "fa_bar_in"}, {"id": "fa_bar_out"}, {"id": "fa_rot"}, {"id": "fa_hammer"}]}]}], [{"n": 1, "blocks": [{"g": "Ноги", "items": [{"id": "pendulum", "n": 3, "reps": "10-12", "star": 1}, {"id": "rdl", "n": 3, "reps": "10-12", "star": 1}, {"id": "leg_ext", "n": 2, "reps": "10-12", "star": 1}, {"id": "calf_press", "n": 3, "reps": "12-14"}]}, {"g": "Плечи", "items": [{"id": "db_ohp", "n": 3, "reps": "10-12", "star": 1}, {"id": "db_lat", "n": 2, "reps": "10-12", "star": 1}, {"id": "shrugs", "n": 3, "reps": "12-15"}]}, {"g": "Спина", "items": [{"id": "db_row", "n": 3, "reps": "10-14", "star": 1}, {"id": "row_v", "n": 3, "reps": "10-12", "star": 1, "chg": true}, {"id": "hyperext", "n": 3, "reps": "10-12", "chg": true}]}]}, {"n": 2, "blocks": [{"g": "Грудь", "items": [{"id": "cable_upper", "n": 3, "reps": "10-12"}, {"id": "hammer", "n": 3, "reps": "10-12", "star": 1}, {"id": "pec_deck", "n": 2, "reps": "10-12", "star": 1}]}, {"g": "Бицепс", "items": [{"id": "standing_db_curl", "n": 3, "reps": "10-12"}, {"id": "hammer_curl", "n": 2, "reps": "10-12"}, {"id": "preacher", "n": 3, "reps": "10-12", "star": 1}]}, {"g": "Ноги", "items": [{"id": "adduction", "n": 3, "reps": "12-15", "chg": true}, {"id": "leg_curl_lying", "n": 2, "reps": "12-15", "star": 1}, {"id": "abduction", "n": 2, "reps": "12-15", "chg": true}]}]}, {"n": 3, "blocks": [{"g": "Спина", "items": [{"id": "pullup", "n": 2, "reps": "8-10", "star": 1}, {"id": "lat_v", "n": 2, "reps": "10-12", "star": 1}, {"id": "lat_wide_par", "n": 3, "reps": "10-12", "star": 1}]}, {"g": "Трицепс", "items": [{"id": "cable_overhead", "n": 2, "reps": "10-12"}, {"id": "dips", "n": 3, "reps": "12-14", "star": 1}]}, {"g": "Плечи", "items": [{"id": "lat_machine", "n": 3, "reps": "12-15", "star": 1, "chg": true}, {"id": "rear_db", "n": 3, "reps": "12-15", "star": 1}]}]}, {"n": 4, "blocks": [{"g": "Пресс", "items": [{"id": "abs_bench"}, {"id": "abs_pray"}, {"id": "abs_snail"}]}, {"g": "Предплечья", "items": [{"id": "fa_bar_in"}, {"id": "fa_bar_out"}, {"id": "fa_rot"}, {"id": "fa_hammer"}]}]}]];
+const PLAN_VER=4;
 const SEED=null;
 "use strict";
 const GROUPS=['Спина','Плечи','Бицепс','Грудь','Трицепс','Ноги','Пресс','Предплечья'];
@@ -410,6 +443,7 @@ const active=()=>S.workouts.filter(w=>w.src==='a'&&!w.done).sort((a,b)=>a.d<b.d?
 const roundTo=(x,st)=>Math.round(x/st)*st;
 /* ---------- progression, warm-ups, coach ---------- */
 const HEAVY=wk=>wk===0||wk===2;
+const MAXW=new Set(['calf_smith','calf_press','calf_machine']);
 function planRange(reps){const m=String(reps||'').match(/(\d+)\s*[-–]\s*(\d+)/);if(m)return{lo:+m[1],hi:+m[2]};const n=parseInt(reps,10);return n>0?{lo:n,hi:n}:null;}
 const stepFor=id=>isDB(id)?2:2.5;
 function bumpW(id,w){const st=stepFor(id);if(exInfo(id).kind==='assist')return Math.max(0,Math.round((w-st)*100)/100);return Math.round((w+st)*100)/100;}
@@ -482,6 +516,15 @@ function progressionFor(id,plan,exclWid,week){
       const ev=evalSets(id,ents[ents.length-1].sets,null,null);w=ev?ev.w:null;
     }
     return{state:'light',w};
+  }
+  if(MAXW.has(id)){
+    /* икры всегда на рабочем весе: без облегчения на лёгкой неделе и без пересчёта под другой диапазон */
+    const last=ents[ents.length-1];const rp=last.e.plan&&last.e.plan.reps?last.e.plan:plan;
+    const rows=last.sets.filter(s=>!(s.f&F.WU)&&!(s.f&F.DROP)).length;
+    const ev=evalSets(id,last.sets,rp,rows);
+    if(!ev){const ws=last.sets.filter(s=>s.w!=null);const w0=ws.length?Math.max(...ws.map(s=>s.w)):null;return{state:'hold',w:w0,base:w0};}
+    if(ev.reached)return{state:'up',w:bumpW(id,ev.w),base:ev.w,ev,last};
+    return{state:ev.low?'low':'hold',w:ev.w,base:ev.w,ev,last};
   }
   const noLight=ents.filter(en=>en.w.week!==3);
   /* каждая неделя считается сама по себе: средняя сравнивается со средней, тяжёлая с тяжёлой */
@@ -621,7 +664,7 @@ const COACH={
   'Это неделя восстановления. Если хочется добавить вес, не надо: организм растёт именно сейчас.']
 };
 function coachLine(w,e,ei,prog){
-  const st=w.week===3?'light':prog.state;const arr=COACH[st];if(!arr)return '';
+  const st=(w.week===3&&!MAXW.has(e.id))?'light':prog.state;const arr=COACH[st];if(!arr)return '';
   const kind=exInfo(e.id).kind;const wt=x=>x==null?'':(kind==='bw'&&x>0?'+':'')+fmtN(x);
   const rg=planRange(e.plan&&e.plan.reps);
   const reps=prog.ev?prog.ev.reps:[];const rp=reps.length&&reps.every(x=>x===reps[0])?String(reps[0]):reps.join('/');
@@ -770,9 +813,9 @@ function banners(){
 }
 
 /* ---------- view: train ---------- */
-let ST={week:null,day:null,date:null,confirm:null,openNote:{},flash:null,open:{},last:null,lastW:null,adv:null};
+let ST={week:null,day:null,date:null,confirm:null,openNote:{},flash:null,open:{},last:null,lastW:null,adv:null,summary:null};
 function viewTrain(){
-  const a=active();return banners()+(a?viewSession(a):(ED.on?viewEditor():viewStarter()));
+  const a=active();return banners()+(a?viewSession(a):(ED.on?viewEditor():(ST.summary?viewSummary():viewStarter())));
 }
 function viewStarter(){
   const def=nextDefault();if(ST.week==null){ST.week=def.week;ST.day=def.day;}if(!ST.date)ST.date=todayISO();
@@ -906,7 +949,7 @@ function viewProg(){
   const recent=win(now-35*dayMs,now),before=win(now-125*dayMs,now-90*dayMs);
   const delta=recent!=null&&before!=null?recent-before:null;
   const unit=m==='e1'?'расч. макс.':'лучший вес';
-  let h=`<h2>Прогресс</h2>${viewHof()}<label class="field" for="ex-select">Упражнение<select id="ex-select" data-field="ex-select">${opts}</select></label>
+  let h=`<h2>Прогресс</h2>${viewHof()}${viewTrend()}<label class="field" for="ex-select">Упражнение<select id="ex-select" data-field="ex-select">${opts}</select></label>
   <div class="stats"><div class="stat"><span class="k">Рекорд</span><span class="v">${best?fmtSet(id,best.s):'—'}</span><span class="s">${best?fmtD(best.d)+' · ≈'+fmtN(Math.round(best.v))+' кг':''}</span></div>
   <div class="stat"><span class="k">Последний раз</span><span class="v">${lastB?fmtSet(id,lastB.s):'—'}</span><span class="s">${fmtD(last.w.d)}</span></div>
   <div class="stat"><span class="k">За 3 месяца</span><span class="v ${delta>0?'up':''}">${delta==null?'—':(delta>0?'+':'')+fmtN(Math.round(delta*10)/10)}</span><span class="s">${delta==null?'мало данных':'кг, '+unit}</span></div></div>
@@ -984,7 +1027,7 @@ function viewHist(){
   for(const w of ws){
     const mk=w.d.slice(0,7);if(mk!==curM){if(curM)h+='</div>';h+=`<div class="month">${MONF[toDate(w.d).getMonth()]}</div><div class="hlist">`;curM=mk;}
     const nS=w.ex.reduce((a,e)=>a+e.sets.filter(s=>s.r>0).length,0);const d=toDate(w.d);
-    h+=`<button class="hrow" data-act="hopen" data-v="${w.id}" aria-expanded="${!!HO[w.id]}"><span class="d">${d.getDate()}<small>${WD[d.getDay()]}</small></span><span class="l"><b>${esc(w.label||'Тренировка')}</b><span>${w.ex.length} упр. · ${nS} подходов${w.done?'':' · идёт'}</span></span>${w.week!=null?`<i class="plate sm wk${w.week}"></i>`:'<span></span>'}</button>`;
+    h+=`<button class="hrow" data-act="hopen" data-v="${w.id}" aria-expanded="${!!HO[w.id]}"><span class="d">${d.getDate()}<small>${WD[d.getDay()]}</small></span><span class="l"><b>${esc(w.label||'Тренировка')}</b><span>${w.ex.length} упр. · ${nS} подходов${w.done?'':' · идёт'}${histBadge(w)}</span></span>${w.week!=null?`<i class="plate sm wk${w.week}"></i>`:'<span></span>'}</button>`;
     if(HO[w.id]){h+=`<div class="hdet">${w.ex.filter(e=>e.sets.some(s=>s.r>0)).map(e=>`<div class="e"><b>${esc(exName(e.id))}</b>${e.other?' <span class="muted small">другой зал</span>':''}<div class="s">${setsHTML(e.id,e.sets)}</div>${e.note?`<div class="muted small">${esc(e.note)}</div>`:''}</div>`).join('')}`;
       if(w.src==='a'){h+=HO[w.id]==='del'?`<div class="row"><button class="btn danger" data-act="hdel-yes" data-v="${w.id}">Удалить навсегда</button><button class="btn quiet" data-act="hdel-no" data-v="${w.id}">Отмена</button></div>`:`<div class="row">${w.done&&!active()?`<button class="btn quiet" data-act="hedit" data-v="${w.id}">Открыть для правки</button>`:''}<button class="link" data-act="hdel" data-v="${w.id}">Удалить</button></div>`;}
       h+='</div>';}
@@ -1393,6 +1436,97 @@ function viewHof(){
   return h+'</div>';
 }
 
+/* ---------- v12: workout summary, history badges, 4-week trend ---------- */
+/* прошлая тренировка этого упражнения в той же группе недель, строго раньше этой */
+function prevSame(id,w){
+  const a=idx().byEx[id]||[];const g=wkGrp(w.week);
+  for(let i=a.length-1;i>=0;i--){
+    const en=a[i];if(en.w.id===w.id||en.e.other)continue;
+    if(en.w.d>w.d||(en.w.d===w.d&&en.w.id>w.id))continue;
+    if(g==null||en.w.week==null||wkGrp(en.w.week)===g)return en;
+  }
+  return null;
+}
+function workSets(sets){return sets.filter(s=>s.r>0&&!(s.f&F.WU)&&!(s.f&F.DROP));}
+function fmtWork(id,sets){
+  const ws=workSets(sets);if(!ws.length)return '';
+  const same=ws.every(s=>s.w===ws[0].w);
+  if(same){const k=exInfo(id).kind;const wt=(k==='bw'&&ws[0].w>0?'+':'')+fmtN(ws[0].w);return wt+' × '+ws.map(s=>fmtN(s.r)).join('·');}
+  return ws.map(s=>fmtSet(id,s)).join(', ');
+}
+/* одно упражнение: up / same / down / new */
+function compareEx(w,e){
+  const cur=workSets(e.sets);if(!cur.length)return null;
+  const res={id:e.id,cur:fmtWork(e.id,e.sets),st:'new',delta:'',prev:''};
+  if(w.week===3){res.st='light';return res;}
+  const p=prevSame(e.id,w);
+  if(!p){res.delta='впервые';return res;}
+  const rn=planRange(e.plan&&e.plan.reps),ro=planRange(p.e.plan&&p.e.plan.reps);
+  if(rn&&ro&&(rn.lo!==ro.lo||rn.hi!==ro.hi)){res.delta='новые повторы';return res;}
+  const a=evalSets(e.id,e.sets,e.plan,null),b=evalSets(e.id,p.sets,p.e.plan,null);
+  if(!a||!b||a.w==null||b.w==null){res.delta='не с чем сравнить';return res;}
+  const kind=exInfo(e.id).kind;const better=kind==='assist'?a.w<b.w:a.w>b.w;const dw=Math.round(Math.abs(a.w-b.w)*100)/100;
+  if(a.w!==b.w){
+    res.prev='было '+fmtWork(e.id,p.sets);
+    if(better){res.st='up';res.delta=kind==='assist'?'противовес −'+fmtN(dw):'вес +'+fmtN(dw);}
+    else{res.st='down';res.delta=kind==='assist'?'противовес +'+fmtN(dw):'вес −'+fmtN(dw);}
+    return res;
+  }
+  const k=Math.min(a.at.length,b.at.length);
+  const sa=a.at.slice(0,k).reduce((x,s)=>x+s.r,0),sb=b.at.slice(0,k).reduce((x,s)=>x+s.r,0);
+  res.prev='было '+b.at.map(s=>fmtN(s.r)).join('·');
+  if(sa>sb){res.st='up';res.delta='+'+(sa-sb)+' повт.';}
+  else if(sa<sb){res.st='down';res.delta='−'+(sb-sa)+' повт.';}
+  else{res.st='same';res.delta='как в прошлый раз';res.prev='';}
+  return res;
+}
+function workoutSummary(w){
+  const rows=w.ex.map(e=>compareEx(w,e)).filter(Boolean);
+  const c={up:0,same:0,down:0,new:0,light:0};rows.forEach(r=>c[r.st]++);
+  const E=c.up+c.same+c.down;const miss=w.miss||0;
+  let v=null;
+  if(w.week===3)v={k:'light',t:'Разгрузка выполнена',s:'Лёгкая неделя: вес не гоним, организм восстанавливается.'};
+  else if(!E)v={k:'none',t:'Тренировка записана',s:'Сравнивать пока не с чем: это первые записи на такой неделе.'};
+  else if(c.up*2>=E&&c.down===0&&miss===0)v={k:'strong',t:'Сильная тренировка',s:`прогресс в ${c.up} из ${E}`};
+  else if(c.up>c.down&&miss<=1)v={k:'good',t:'Хорошая тренировка',s:`прогресс в ${c.up} из ${E}`};
+  else if(c.down>c.up||miss>=2)v={k:'weak',t:'Слабее обычного',s:'Бывает. Проверь сон и еду, следующую тренировку не форсируй.'};
+  else v={k:'work',t:'Рабочая тренировка',s:'В основном держим вес и повторы. Стабильность — тоже результат.'};
+  return{rows,c,E,miss,v};
+}
+const ARW={up:'▲',same:'=',down:'▼',new:'•',light:'·'};
+function viewSummary(){
+  const w=S.workouts.find(x=>x.id===ST.summary);if(!w){ST.summary=null;return viewStarter();}
+  const sm=workoutSummary(w);const nWork=w.ex.reduce((a,e)=>a+workSets(e.sets).length,0);
+  let h=`<div class="sum-h"><i class="plate wk${w.week}"></i><div><b>${WEEKS[w.week]?WEEKS[w.week].name+' · №'+w.day:'Тренировка'}</b><span>${fmtDW(w.d)} · записана</span></div></div>`;
+  h+=`<div class="verdict v-${sm.v.k}"><b>${esc(sm.v.t)}</b><span>${esc(sm.v.s)}</span></div>`;
+  h+='<div class="card sum-list">'+sm.rows.map(r=>`<div class="sr s-${r.st}"><div class="sr1"><i>${ARW[r.st]}</i><b>${esc(exName(r.id))}</b>${r.delta?`<em>${esc(r.delta)}</em>`:''}</div><div class="sr2">${esc(r.cur)}${r.prev?' · '+esc(r.prev):''}</div></div>`).join('')+'</div>';
+  const plannedTxt=sm.miss?` · недоделано: ${sm.miss}`:'';
+  h+=`<p class="muted small">Рабочих подходов: ${nWork}${plannedTxt} · Рекордов: ${w.rec||0}</p>`;
+  if(fourthWeek(w))h+=`<div class="pride">${esc(pick(FOURTH,w.id))}</div>`;
+  h+=`<p class="muted small">Одна тренировка мало что говорит: сон, еда и настроение каждый день разные. Смотри на тренд во вкладке «Прогресс».</p>`;
+  h+=`<button class="btn wide" data-act="sum-close">Готово</button>`;
+  return h;
+}
+function histBadge(w){
+  if(!w.done||w.week==null||w.week===3)return '';
+  const sm=workoutSummary(w);if(!sm.E)return '';
+  return ` · <span class="hb">${sm.c.up?`<i class="up">▲${sm.c.up}</i>`:''}${sm.c.down?`<i class="dn">▼${sm.c.down}</i>`:''}${!sm.c.up&&!sm.c.down?'<i>=</i>':''}</span>`;
+}
+/* тренд: последнее выполнение каждого упражнения за 28 дней против прошлого такого же */
+function trend28(){
+  const now=toDate(todayISO()).getTime();const c={up:0,same:0,down:0};
+  for(const id of Object.keys(idx().byEx)){
+    const a=idx().byEx[id];let en=null;
+    for(let i=a.length-1;i>=0;i--){const x=a[i];if(x.e.other||x.w.week===3||!x.w.done)continue;const t=toDate(x.w.d).getTime();if(t>now)continue;if(now-t<=28*dayMs)en=x;break;}
+    if(!en)continue;const r=compareEx(en.w,en.e);if(r&&c[r.st]!=null)c[r.st]++;
+  }
+  return c;
+}
+function viewTrend(){
+  const c=trend28();if(!c.up&&!c.same&&!c.down)return '';
+  return `<div class="card trend"><b class="hof-t">Последние 4 недели</b><div class="tr-row"><span class="up">▲ ${c.up}<small>прогресс</small></span><span>= ${c.same}<small>стабильно</small></span><span class="dn">▼ ${c.down}<small>просело</small></span></div><p class="legend">По каждому упражнению: последний раз против прошлого такого же (тяжёлая с тяжёлой, средняя со средней).</p></div>`;
+}
+
 /* ---------- events ---------- */
 document.addEventListener('click',ev=>{
   const t=ev.target.closest('[data-act]');if(!t)return;const a=t.dataset.act,v=t.dataset.v,ei=+t.dataset.ei,si=+t.dataset.si;const w=active();
@@ -1423,7 +1557,8 @@ document.addEventListener('click',ev=>{
     case 'ed-reset':ED.confirm='reset';render();break;
     case 'ed-reset-no':ED.confirm=null;render();break;
     case 'ed-reset-yes':S.plan=clonePlan(PLAN);ED.confirm=null;touch();flush();render();break;
-    case 'tab':UI.tab=v;saveUI();ST.flash=null;render();window.scrollTo(0,0);break;
+    case 'sum-close':ST.summary=null;render();window.scrollTo(0,0);break;
+    case 'tab':UI.tab=v;saveUI();ST.flash=null;ST.summary=null;render();window.scrollTo(0,0);break;
     case 'pick-week':ST.week=+v;render();break;
     case 'pick-day':ST.day=+v;render();break;
     case 'start':startWorkout(ST.week,ST.day,ST.date||todayISO());ST.flash=null;render();window.scrollTo(0,0);break;
@@ -1441,9 +1576,9 @@ document.addEventListener('click',ev=>{
     case 'finish':ST.confirm=noWeightList(w).length?'noweight':'finish';render();break;
     case 'cancel':ST.confirm='cancel';render();break;
     case 'confirm-no':ST.confirm=null;render();break;
-    case 'finish-yes':{let n=0,rec=0;for(const e of w.ex){const best=bestEver(e.id,w.id);fixBw(e);e.sets=e.sets.filter(s=>s.r>0);n+=e.sets.length;if(best&&e.sets.some(s=>!(s.f&F.WU)&&scoreSet(e.id,s,w.d)>best.v+1e-6))rec++;}
+    case 'finish-yes':{let n=0,rec=0,miss=0;for(const e of w.ex){if(e.plan&&e.plan.reps){const pw=e.plan.star?(e.plan.n||0):(e.plan.work||e.plan.n||0);miss+=Math.max(0,pw-e.sets.filter(s=>s.r>0&&!(s.f&F.WU)).length);}const best=bestEver(e.id,w.id);fixBw(e);e.sets=e.sets.filter(s=>s.r>0);n+=e.sets.length;if(best&&e.sets.some(s=>!(s.f&F.WU)&&scoreSet(e.id,s,w.d)>best.v+1e-6))rec++;}
       w.ex=w.ex.filter(e=>e.sets.length);w.done=true;ST.confirm=null;ST.week=null;ST.day=null;ST.date=null;touch();flush();
-      ST.flash=finishPhrase(n,rec,w.week,fourthWeek(w));render();window.scrollTo(0,0);break;}
+      w.rec=rec;w.miss=miss;touch();flush();ST.flash=null;ST.summary=w.id;render();window.scrollTo(0,0);break;}
     case 'back':{const n=w.ex.reduce((a,e)=>a+e.sets.filter(z=>z.r>0).length,0);if(n){ST.confirm='back';render();window.scrollTo(0,0);break;}}
     // falls through when nothing entered
     case 'back-yes':{ST.week=w.week;ST.day=w.day;ST.date=w.d;S.workouts=S.workouts.filter(x=>x!==w);ST.confirm=null;ST.flash=null;touch();render();window.scrollTo(0,0);break;}
