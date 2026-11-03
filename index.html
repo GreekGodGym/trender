@@ -378,11 +378,20 @@ function expandSeed(list){
   return list.map(([d,label,ex],i)=>({id:'h-'+d+'-'+i,d,label,src:'h',done:true,
     ex:ex.map(([id,sets,other])=>({id,other:!!other,sets:sets.map(([w,r,f,n])=>{const s={w,r,f:f||0};if(n)s.n=n;return s;})}))}));
 }
+const WEEKFIX={'2026-10-14':[0,1],'2026-10-15':[0,2],'2026-10-18':[0,3],'2026-10-20':[1,1]};
+function fixOldWeeks(){
+  let n=0;
+  for(const w of S.workouts){const f=w.src==='h'?WEEKFIX[w.d]:null;if(!f||w.week!=null)continue;
+    w.week=f[0];w.day=f[1];w.label=WEEKS[f[0]].name+' неделя · Тренировка '+f[1];n++;}
+  if(n){IDX=null;flush();}
+  return n;
+}
 function load(){
   S=blank();
   try{const raw=localStorage.getItem(KEY);if(raw){const o=JSON.parse(raw);if(o&&o.v===1)S=Object.assign(blank(),o);}}catch(e){storageOK=false;}
   if(!S.workouts.length&&typeof SEED!=='undefined'&&SEED){S.workouts=expandSeed(SEED.w);S.bw=SEED.bw.map(x=>x.slice());flush();}
   if(!validPlan(S.plan)){S.plan=clonePlan(PLAN);S.planVer=PLAN_VER;flush();}
+  fixOldWeeks();
   if(S.planVer!==PLAN_VER){S.plan=clonePlan(PLAN);S.planVer=PLAN_VER;flush();
     ST.flash='План тренировок обновлён до новой версии. Изменённые упражнения отмечены жёлтым. История, веса и рекорды на месте.';}
 }
@@ -506,16 +515,15 @@ function progressionFor(id,plan,exclWid,week){
   if(!ents.length)return{state:star?'light':'first',w:null};
   const own=ents.filter(en=>!en.e.other);if(own.length)ents=own;
   if(star){
-    let w=null;
-    if(kind==='w'){
-      const since=toDate(todayISO()).getTime()-42*dayMs;let mx=0;
-      for(const en of ents){if(toDate(en.w.d).getTime()<since)continue;for(const s of en.sets)if(!(s.f&F.WU)&&!(s.f&F.DROP)&&s.w)mx=Math.max(mx,s.w);}
-      if(!mx){const pw=workOnly(ents[ents.length-1].sets);mx=pw.length?Math.max(...pw.map(s=>s.w)):0;}
-      w=mx?roundTo(mx*0.55,stepFor(id)):null;
-    }else{
-      const ev=evalSets(id,ents[ents.length-1].sets,null,null);w=ev?ev.w:null;
-    }
-    return{state:'light',w};
+    /* лёгкая неделя: 50–60% от рабочего веса. Берём последний рабочий вес с тяжёлой недели,
+       если упражнения там нет — со средней, если и там нет — из старых записей без недели */
+    if(kind==='bw')return{state:'light',w:0};
+    const pickBase=g=>{for(let i=ents.length-1;i>=0;i--){const en=ents[i];if(en.w.week===3)continue;
+      if(g?wkGrp(en.w.week)!==g:en.w.week!=null)continue;const ev=evalSets(id,en.sets,en.e.plan,null);if(ev&&ev.w>0)return ev.w;}return null;};
+    const base=pickBase('h')??pickBase('m')??pickBase(null);
+    if(base==null)return{state:'light',w:null};
+    if(kind==='assist')return{state:'light',w:base,base};
+    return{state:'light',w:roundTo(base*0.55,stepFor(id)),base};
   }
   if(MAXW.has(id)){
     /* икры всегда на рабочем весе: без облегчения на лёгкой неделе и без пересчёта под другой диапазон */
@@ -529,6 +537,7 @@ function progressionFor(id,plan,exclWid,week){
   const noLight=ents.filter(en=>en.w.week!==3);
   /* каждая неделя считается сама по себе: средняя сравнивается со средней, тяжёлая с тяжёлой */
   const cg=wkGrp(week);let pool=noLight;
+  if(cg==='l'){const lw=ents.filter(en=>en.w.week===3||en.w.week==null);if(lw.length)pool=lw;}
   if(cg&&cg!=='l'&&plan&&plan.reps){
     const mine=noLight.filter(en=>en.w.week==null||wkGrp(en.w.week)===cg);
     if(mine.length)pool=mine;
@@ -1075,7 +1084,7 @@ function importText(txt){
   for(const w of o.workouts){if(!w||!w.id||!w.d||!Array.isArray(w.ex))continue;if(byId.has(w.id))upd++;else add++;byId.set(w.id,w);}
   S.workouts=[...byId.values()];
   const bw=new Map(S.bw.map(x=>[x[0],x[1]]));for(const x of o.bw||[])if(Array.isArray(x))bw.set(x[0],x[1]);S.bw=[...bw.entries()];
-  Object.assign(S.custom,o.custom||{});let planNote='';if(validPlan(o.plan)&&o.planVer===PLAN_VER){S.plan=o.plan;planNote=' План из копии загружен.';}
+  fixOldWeeks();Object.assign(S.custom,o.custom||{});let planNote='';if(validPlan(o.plan)&&o.planVer===PLAN_VER){S.plan=o.plan;planNote=' План из копии загружен.';}
   touch();flush();DM.msg={ok:1,t:`Загружено: новых тренировок ${add}, обновлено ${upd}.`+planNote};DM.paste=false;render();
 }
 
